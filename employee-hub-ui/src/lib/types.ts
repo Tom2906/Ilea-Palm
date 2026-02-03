@@ -156,3 +156,14 @@ export interface SendNotificationsResult {
   skipped: number
   errors: string[]
 }
+
+export interface AuditLogEntry {
+  id: string
+  tableName: string
+  recordId: string
+  action: string
+  userId: string | null
+  oldData: string | null
+  newData: string | null
+  createdAt: string
+}

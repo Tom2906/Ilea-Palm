@@ -2,18 +2,9 @@ import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import type { EmployeeStatus } from "@/lib/types"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import {
   Dialog,
   DialogContent,
@@ -23,6 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Skeleton } from "@/components/ui/skeleton"
+import { ListRow } from "@/components/list-row"
 import { Plus, Pencil } from "lucide-react"
 
 export default function EmployeeStatusesPage() {
@@ -173,67 +165,47 @@ export default function EmployeeStatusesPage() {
         </Dialog>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Order</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead className="w-24">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                [...Array(5)].map((_, i) => (
-                  <TableRow key={i}>
-                    {[...Array(4)].map((_, j) => (
-                      <TableCell key={j}>
-                        <Skeleton className="h-4 w-20" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                statuses?.map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell className="font-medium">{s.name}</TableCell>
-                    <TableCell>{s.displayOrder}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={s.active ? "outline" : "secondary"}
-                        className={
-                          s.active
-                            ? "border-emerald-300 text-emerald-700 cursor-pointer"
-                            : "cursor-pointer"
-                        }
-                        onClick={() =>
-                          toggleMutation.mutate({
-                            id: s.id,
-                            active: !s.active,
-                          })
-                        }
-                      >
-                        {s.active ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEdit(s)}
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {isLoading ? (
+        <div className="space-y-2">
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} className="h-14 w-full rounded-lg" />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {statuses?.map((s) => (
+            <ListRow key={s.id}>
+              <div className="flex items-center justify-center h-7 w-7 rounded-full bg-muted text-xs font-medium shrink-0">
+                {s.displayOrder}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">{s.name}</p>
+              </div>
+              <Badge
+                variant={s.active ? "outline" : "secondary"}
+                className={`text-xs shrink-0 cursor-pointer ${
+                  s.active
+                    ? "border-emerald-300 text-emerald-700"
+                    : ""
+                }`}
+                onClick={() =>
+                  toggleMutation.mutate({ id: s.id, active: !s.active })
+                }
+              >
+                {s.active ? "Active" : "Inactive"}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="shrink-0"
+                onClick={() => openEdit(s)}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+            </ListRow>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

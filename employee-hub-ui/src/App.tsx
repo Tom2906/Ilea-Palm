@@ -6,7 +6,6 @@ import LoginPage from "@/pages/login"
 import DashboardPage from "@/pages/dashboard"
 import EmployeesPage from "@/pages/employees"
 import TrainingCoursesPage from "@/pages/training-courses"
-import RecordTrainingPage from "@/pages/record-training"
 import OnboardingItemsPage from "@/pages/onboarding-items"
 import NotificationsPage from "@/pages/notifications"
 import EmployeeDetailPage from "@/pages/employee-detail"
@@ -40,7 +39,6 @@ export default function App() {
               <Route path="/employees/:id/edit" element={<EmployeeFormPage />} />
               <Route path="/training-courses" element={<TrainingCoursesPage />} />
               <Route path="/training-matrix" element={<TrainingMatrixPage />} />
-              <Route path="/record-training" element={<RecordTrainingPage />} />
               <Route path="/onboarding-items" element={<OnboardingItemsPage />} />
               <Route path="/employee-statuses" element={<EmployeeStatusesPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />

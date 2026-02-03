@@ -2,21 +2,14 @@ import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
 import { api } from "@/lib/api"
+import { formatDate } from "@/lib/format"
 import type { Employee } from "@/lib/types"
 import { useAuth } from "@/contexts/auth-context"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
+import { ListRow } from "@/components/list-row"
 import { Plus, Search } from "lucide-react"
 
 export default function EmployeesPage() {
@@ -70,77 +63,52 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Start Date</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                [...Array(5)].map((_, i) => (
-                  <TableRow key={i}>
-                    {[...Array(5)].map((_, j) => (
-                      <TableCell key={j}>
-                        <Skeleton className="h-4 w-24" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : filtered?.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    No employees found.
-                  </TableCell>
-                </TableRow>
+      {isLoading ? (
+        <div className="space-y-2">
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-lg" />
+          ))}
+        </div>
+      ) : filtered?.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-8">
+          No employees found.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {filtered?.map((e) => (
+            <ListRow key={e.id} onClick={() => navigate(`/employees/${e.id}`)}>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">
+                  {e.firstName} {e.lastName}
+                </p>
+                <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+                  <span>{e.email}</span>
+                  <span>{e.role}</span>
+                  <span>Started {formatDate(e.startDate)}</span>
+                </div>
+              </div>
+              {e.statusName ? (
+                <Badge
+                  variant={e.active ? "outline" : "secondary"}
+                  className={`text-xs shrink-0 ${
+                    e.statusName === "Active"
+                      ? "border-emerald-300 text-emerald-700"
+                      : e.statusName === "Suspended"
+                        ? "border-red-300 text-red-700"
+                        : ""
+                  }`}
+                >
+                  {e.statusName}
+                </Badge>
               ) : (
-                filtered?.map((e) => (
-                  <TableRow
-                    key={e.id}
-                    className="cursor-pointer"
-                    onClick={() => navigate(`/employees/${e.id}`)}
-                  >
-                    <TableCell className="font-medium">
-                      {e.firstName} {e.lastName}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{e.email}</TableCell>
-                    <TableCell>{e.role}</TableCell>
-                    <TableCell>
-                      {e.statusName ? (
-                        <Badge
-                          variant={e.active ? "outline" : "secondary"}
-                          className={
-                            e.statusName === "Active"
-                              ? "border-emerald-300 text-emerald-700"
-                              : e.statusName === "Suspended"
-                                ? "border-red-300 text-red-700"
-                                : ""
-                          }
-                        >
-                          {e.statusName}
-                        </Badge>
-                      ) : (
-                        <Badge variant={e.active ? "outline" : "secondary"}>
-                          {e.active ? "Active" : "Inactive"}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {new Date(e.startDate).toLocaleDateString("en-GB")}
-                    </TableCell>
-                  </TableRow>
-                ))
+                <Badge variant={e.active ? "outline" : "secondary"} className="text-xs shrink-0">
+                  {e.active ? "Active" : "Inactive"}
+                </Badge>
               )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            </ListRow>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

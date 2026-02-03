@@ -1,5 +1,5 @@
 import * as React from "react"
-import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react"
+import { CheckIcon, ChevronLeftIcon, ChevronRightIcon, CircleIcon } from "lucide-react"
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
@@ -199,11 +199,14 @@ function DropdownMenuSub({
 function DropdownMenuSubTrigger({
   className,
   inset,
+  side = "right",
   children,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.SubTrigger> & {
   inset?: boolean
+  side?: "left" | "right"
 }) {
+  const ChevronIcon = side === "left" ? ChevronLeftIcon : ChevronRightIcon
   return (
     <DropdownMenuPrimitive.SubTrigger
       data-slot="dropdown-menu-sub-trigger"
@@ -214,8 +217,9 @@ function DropdownMenuSubTrigger({
       )}
       {...props}
     >
+      {side === "left" && <ChevronIcon className="mr-auto size-4" />}
       {children}
-      <ChevronRightIcon className="ml-auto size-4" />
+      {side === "right" && <ChevronIcon className="ml-auto size-4" />}
     </DropdownMenuPrimitive.SubTrigger>
   )
 }

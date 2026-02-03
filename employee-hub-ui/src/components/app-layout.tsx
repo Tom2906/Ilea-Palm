@@ -17,7 +17,6 @@ const pageTitles: Record<string, string> = {
   "/employees/new": "Add Employee",
   "/training-courses": "Training Courses",
   "/training-matrix": "Training Matrix",
-  "/record-training": "Record Training",
   "/onboarding-items": "Onboarding Items",
   "/employee-statuses": "Employee Statuses",
   "/notifications": "Notifications",
@@ -50,7 +49,7 @@ export default function AppLayout() {
         : "Page")
 
   return (
-    <SidebarProvider>
+    <SidebarProvider className="h-svh">
       <AppSidebar />
       <SidebarInset>
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
@@ -64,7 +63,7 @@ export default function AppLayout() {
             </BreadcrumbList>
           </Breadcrumb>
         </header>
-        <main className="flex-1 p-4 md:p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <Outlet />
         </main>
       </SidebarInset>

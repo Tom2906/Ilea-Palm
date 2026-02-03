@@ -1,7 +1,6 @@
 import {
   BookOpen,
   ClipboardCheck,
-  GraduationCap,
   Home,
   Bell,
   Users,
@@ -44,7 +43,6 @@ const mainNav: NavItem[] = [
   { title: "Employees", url: "/employees", icon: Users },
   { title: "Training Matrix", url: "/training-matrix", icon: Grid3X3 },
   { title: "Training Courses", url: "/training-courses", icon: BookOpen },
-  { title: "Record Training", url: "/record-training", icon: GraduationCap },
 ]
 
 const adminNav: NavItem[] = [
@@ -89,7 +87,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border px-4 py-3">
         <div className="flex items-center gap-3">
-          <img src="/logo.jpg" alt="Ilea Palm" className="h-8 w-auto" />
+          <img src="/logo.png" alt="Ilea Palm" className="h-8 w-auto" />
           <span className="font-semibold text-sm text-sidebar-foreground">
             Employee Hub
           </span>
