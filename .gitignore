@@ -1,0 +1,39 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.dll
+*.exe
+*.pdb
+appsettings.json
+appsettings.Development.json
+
+# Node / Frontend
+node_modules/
+dist/
+.vite/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Environment / Secrets
+.env
+.env.*
+*.pfx
+*.key
+
+# Claude Code
+.claude/
+
+# Temp
+nul
