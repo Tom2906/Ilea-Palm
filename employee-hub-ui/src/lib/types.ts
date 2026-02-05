@@ -62,6 +62,7 @@ export interface TrainingCourse {
   description: string | null
   category: "Online Mandatory" | "F2F Mandatory" | "Additional"
   validityMonths: number | null
+  expiryWarningDaysBefore: number
   notificationDaysBefore: number
   reminderFrequencyDays: number
   notifyEmployee: boolean
@@ -260,4 +261,21 @@ export interface SupervisionRequirement {
   effectiveFrom: string
   requiredCount: number
   createdAt: string
+}
+
+export interface CompanySettings {
+  id: string
+  companyName: string
+  defaultExpiryWarningDays: number
+  defaultNotificationDaysBefore: number
+  defaultReminderFrequencyDays: number
+  defaultNotifyEmployee: boolean
+  defaultNotifyAdmin: boolean
+  defaultSupervisionFrequencyMonths: number
+  supervisionMonthsBack: number
+  supervisionMonthsForward: number
+  defaultHiddenRoles: string[]
+  defaultHiddenEmployeeStatuses: string[]
+  createdAt: string
+  updatedAt: string
 }

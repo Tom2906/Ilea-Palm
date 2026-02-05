@@ -147,7 +147,6 @@ export function SupervisionTimeline({
 
     const sups = supervisionMap.get(period) || []
     const completed = sups.filter((s) => s.isCompleted).length
-    const planned = sups.filter((s) => !s.isCompleted).length
     const required = getRequiredCount(period)
 
     // Future month - just grey

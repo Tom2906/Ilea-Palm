@@ -13,6 +13,9 @@ public class Employee
     public Guid? StatusId { get; set; }
     public string? StatusName { get; set; }
     public string? Notes { get; set; }
+    public Guid? ReportsTo { get; set; }
+    public string? SupervisorName { get; set; }
+    public int SupervisionFrequency { get; set; } = 2;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

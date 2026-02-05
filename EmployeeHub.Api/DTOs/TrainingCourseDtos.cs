@@ -13,7 +13,9 @@ public class CreateTrainingCourseRequest
     public string Category { get; set; } = string.Empty;
 
     public int? ValidityMonths { get; set; }
-    public int NotificationDaysBefore { get; set; } = 30;
+    public int ExpiryWarningDaysBefore { get; set; } = 30;
+    public int NotificationDaysBefore { get; set; } = 0;
+    public int ReminderFrequencyDays { get; set; } = 7;
     public bool NotifyEmployee { get; set; } = true;
     public bool NotifyAdmin { get; set; } = true;
     public string[]? MandatoryForRoles { get; set; }
@@ -25,7 +27,9 @@ public class UpdateTrainingCourseRequest
     public string? Description { get; set; }
     public string? Category { get; set; }
     public int? ValidityMonths { get; set; }
+    public int? ExpiryWarningDaysBefore { get; set; }
     public int? NotificationDaysBefore { get; set; }
+    public int? ReminderFrequencyDays { get; set; }
     public bool? NotifyEmployee { get; set; }
     public bool? NotifyAdmin { get; set; }
     public string[]? MandatoryForRoles { get; set; }
@@ -38,7 +42,9 @@ public class TrainingCourseResponse
     public string? Description { get; set; }
     public string Category { get; set; } = string.Empty;
     public int? ValidityMonths { get; set; }
+    public int ExpiryWarningDaysBefore { get; set; }
     public int NotificationDaysBefore { get; set; }
+    public int ReminderFrequencyDays { get; set; }
     public bool NotifyEmployee { get; set; }
     public bool NotifyAdmin { get; set; }
     public string[]? MandatoryForRoles { get; set; }

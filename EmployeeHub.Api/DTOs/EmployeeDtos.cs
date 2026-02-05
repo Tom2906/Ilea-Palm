@@ -23,6 +23,8 @@ public class CreateEmployeeRequest
 
     public Guid? StatusId { get; set; }
     public string? Notes { get; set; }
+    public Guid? ReportsTo { get; set; }
+    public int SupervisionFrequency { get; set; } = 2;
 }
 
 public class UpdateEmployeeRequest
@@ -37,6 +39,8 @@ public class UpdateEmployeeRequest
     public bool? Active { get; set; }
     public Guid? StatusId { get; set; }
     public string? Notes { get; set; }
+    public Guid? ReportsTo { get; set; }
+    public int? SupervisionFrequency { get; set; }
 }
 
 public class EmployeeResponse
@@ -52,6 +56,9 @@ public class EmployeeResponse
     public Guid? StatusId { get; set; }
     public string? StatusName { get; set; }
     public string? Notes { get; set; }
+    public Guid? ReportsTo { get; set; }
+    public string? SupervisorName { get; set; }
+    public int SupervisionFrequency { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

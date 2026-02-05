@@ -32,7 +32,9 @@ const defaultForm = {
   description: "",
   category: "Online Mandatory" as string,
   validityMonths: "",
-  notificationDaysBefore: "30",
+  expiryWarningDaysBefore: "30",
+  notificationDaysBefore: "0",
+  reminderFrequencyDays: "7",
   notifyEmployee: true,
   notifyAdmin: true,
 }
@@ -95,7 +97,9 @@ export default function TrainingCoursesPage() {
       description: course.description ?? "",
       category: course.category,
       validityMonths: course.validityMonths?.toString() ?? "",
+      expiryWarningDaysBefore: course.expiryWarningDaysBefore.toString(),
       notificationDaysBefore: course.notificationDaysBefore.toString(),
+      reminderFrequencyDays: course.reminderFrequencyDays.toString(),
       notifyEmployee: course.notifyEmployee,
       notifyAdmin: course.notifyAdmin,
     })
@@ -111,7 +115,9 @@ export default function TrainingCoursesPage() {
       description: form.description || null,
       category: form.category,
       validityMonths: form.validityMonths ? parseInt(form.validityMonths) : null,
-      notificationDaysBefore: parseInt(form.notificationDaysBefore) || 30,
+      expiryWarningDaysBefore: parseInt(form.expiryWarningDaysBefore) || 30,
+      notificationDaysBefore: parseInt(form.notificationDaysBefore) || 0,
+      reminderFrequencyDays: parseInt(form.reminderFrequencyDays) || 7,
       notifyEmployee: form.notifyEmployee,
       notifyAdmin: form.notifyAdmin,
     }
@@ -164,6 +170,7 @@ export default function TrainingCoursesPage() {
                 <p className="text-sm font-medium truncate">{c.name}</p>
                 <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
                   <span>{c.validityMonths ? `${c.validityMonths} month validity` : "No expiry"}</span>
+                  <span>{c.expiryWarningDaysBefore}d warning</span>
                   <span>{c.notificationDaysBefore}d notification</span>
                   {(c.notifyEmployee || c.notifyAdmin) && (
                     <span>
@@ -249,13 +256,36 @@ export default function TrainingCoursesPage() {
                   />
                 </Field>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Field>
+                  <FieldLabel htmlFor="warningDays">Warning Days Before Expiry</FieldLabel>
+                  <Input
+                    id="warningDays"
+                    type="number"
+                    value={form.expiryWarningDaysBefore}
+                    onChange={(e) => setForm({ ...form, expiryWarningDaysBefore: e.target.value })}
+                    disabled={isPending}
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="notifDays">Notification Days Before</FieldLabel>
+                  <Input
+                    id="notifDays"
+                    type="number"
+                    placeholder="0 = on expiry only"
+                    value={form.notificationDaysBefore}
+                    onChange={(e) => setForm({ ...form, notificationDaysBefore: e.target.value })}
+                    disabled={isPending}
+                  />
+                </Field>
+              </div>
               <Field>
-                <FieldLabel htmlFor="notifDays">Notification Days Before Expiry</FieldLabel>
+                <FieldLabel htmlFor="reminderFreq">Reminder Frequency (Days)</FieldLabel>
                 <Input
-                  id="notifDays"
+                  id="reminderFreq"
                   type="number"
-                  value={form.notificationDaysBefore}
-                  onChange={(e) => setForm({ ...form, notificationDaysBefore: e.target.value })}
+                  value={form.reminderFrequencyDays}
+                  onChange={(e) => setForm({ ...form, reminderFrequencyDays: e.target.value })}
                   disabled={isPending}
                 />
               </Field>

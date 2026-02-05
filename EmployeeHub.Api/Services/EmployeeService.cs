@@ -12,11 +12,13 @@ public class EmployeeService : IEmployeeService
     private const string SelectColumns = @"
         e.id, e.email, e.first_name, e.last_name, e.department, e.role,
         e.start_date, e.active, e.status_id, es.name as status_name, e.notes,
-        e.created_at, e.updated_at";
+        e.reports_to, supervisor.first_name || ' ' || supervisor.last_name as supervisor_name,
+        e.supervision_frequency, e.created_at, e.updated_at";
 
     private const string FromClause = @"
         FROM employees e
-        LEFT JOIN employee_statuses es ON e.status_id = es.id";
+        LEFT JOIN employee_statuses es ON e.status_id = es.id
+        LEFT JOIN employees supervisor ON e.reports_to = supervisor.id";
 
     public EmployeeService(IDbService db, IAuditService audit)
     {
@@ -57,8 +59,8 @@ public class EmployeeService : IEmployeeService
     {
         await using var conn = await _db.GetConnectionAsync();
         await using var cmd = new NpgsqlCommand(@"
-            INSERT INTO employees (email, first_name, last_name, department, role, start_date, status_id, notes)
-            VALUES (@email, @firstName, @lastName, @department, @role, @startDate, @statusId, @notes)
+            INSERT INTO employees (email, first_name, last_name, department, role, start_date, status_id, notes, reports_to, supervision_frequency)
+            VALUES (@email, @firstName, @lastName, @department, @role, @startDate, @statusId, @notes, @reportsTo, @supervisionFrequency)
             RETURNING id", conn);
 
         cmd.Parameters.AddWithValue("email", request.Email.ToLowerInvariant());
@@ -69,6 +71,8 @@ public class EmployeeService : IEmployeeService
         cmd.Parameters.AddWithValue("startDate", request.StartDate);
         cmd.Parameters.AddWithValue("statusId", (object?)request.StatusId ?? DBNull.Value);
         cmd.Parameters.AddWithValue("notes", (object?)request.Notes ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("reportsTo", (object?)request.ReportsTo ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("supervisionFrequency", request.SupervisionFrequency);
 
         var id = (Guid)(await cmd.ExecuteScalarAsync())!;
         var employee = (await GetByIdAsync(id))!;
@@ -95,6 +99,8 @@ public class EmployeeService : IEmployeeService
                 active = COALESCE(@active, active),
                 status_id = COALESCE(@statusId, status_id),
                 notes = COALESCE(@notes, notes),
+                reports_to = COALESCE(@reportsTo, reports_to),
+                supervision_frequency = COALESCE(@supervisionFrequency, supervision_frequency),
                 updated_at = NOW()
             WHERE id = @id", conn);
 
@@ -108,6 +114,8 @@ public class EmployeeService : IEmployeeService
         cmd.Parameters.AddWithValue("active", request.Active.HasValue ? request.Active.Value : DBNull.Value);
         cmd.Parameters.AddWithValue("statusId", (object?)request.StatusId ?? DBNull.Value);
         cmd.Parameters.AddWithValue("notes", (object?)request.Notes ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("reportsTo", (object?)request.ReportsTo ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("supervisionFrequency", request.SupervisionFrequency.HasValue ? request.SupervisionFrequency.Value : DBNull.Value);
 
         await cmd.ExecuteNonQueryAsync();
         var updated = await GetByIdAsync(id);
@@ -149,8 +157,11 @@ public class EmployeeService : IEmployeeService
             StatusId = reader.IsDBNull(8) ? null : reader.GetGuid(8),
             StatusName = reader.IsDBNull(9) ? null : reader.GetString(9),
             Notes = reader.IsDBNull(10) ? null : reader.GetString(10),
-            CreatedAt = reader.GetDateTime(11),
-            UpdatedAt = reader.GetDateTime(12)
+            ReportsTo = reader.IsDBNull(11) ? null : reader.GetGuid(11),
+            SupervisorName = reader.IsDBNull(12) ? null : reader.GetString(12),
+            SupervisionFrequency = reader.GetInt32(13),
+            CreatedAt = reader.GetDateTime(14),
+            UpdatedAt = reader.GetDateTime(15)
         };
     }
 }

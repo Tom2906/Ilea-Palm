@@ -1,0 +1,24 @@
+namespace EmployeeHub.Api.Models;
+
+public class CompanySettings
+{
+    public Guid Id { get; set; }
+    public string CompanyName { get; set; } = string.Empty;
+
+    // Training defaults
+    public int DefaultExpiryWarningDays { get; set; } = 30;
+    public int DefaultNotificationDaysBefore { get; set; } = 0;
+    public int DefaultReminderFrequencyDays { get; set; } = 7;
+    public bool DefaultNotifyEmployee { get; set; } = true;
+    public bool DefaultNotifyAdmin { get; set; } = true;
+
+    // Supervision defaults
+    public int DefaultSupervisionFrequencyMonths { get; set; } = 1;
+    public int SupervisionMonthsBack { get; set; } = 9;
+    public int SupervisionMonthsForward { get; set; } = 3;
+    public string[] DefaultHiddenRoles { get; set; } = Array.Empty<string>();
+    public string[] DefaultHiddenEmployeeStatuses { get; set; } = Array.Empty<string>();
+
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}

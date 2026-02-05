@@ -15,6 +15,7 @@ import TrainingMatrixPage from "@/pages/training-matrix"
 import SupervisionMatrixPage from "@/pages/supervision-matrix"
 import AppraisalsPage from "@/pages/appraisals"
 import AuditLogPage from "@/pages/audit-log"
+import SettingsPage from "@/pages/settings"
 import ChangePasswordPage from "@/pages/change-password"
 
 const queryClient = new QueryClient({
@@ -47,6 +48,7 @@ export default function App() {
               <Route path="/employee-statuses" element={<EmployeeStatusesPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/audit-log" element={<AuditLogPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
               <Route path="/change-password" element={<ChangePasswordPage />} />
             </Route>
           </Routes>

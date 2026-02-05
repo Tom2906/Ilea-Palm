@@ -1,0 +1,106 @@
+using EmployeeHub.Api.Models;
+using Npgsql;
+
+namespace EmployeeHub.Api.Services;
+
+public class CompanySettingsService : ICompanySettingsService
+{
+    private readonly IDbService _db;
+    private readonly IAuditService _audit;
+
+    public CompanySettingsService(IDbService db, IAuditService audit)
+    {
+        _db = db;
+        _audit = audit;
+    }
+
+    public async Task<CompanySettings> GetAsync()
+    {
+        await using var conn = await _db.GetConnectionAsync();
+        await using var cmd = new NpgsqlCommand(@"
+            SELECT id, company_name, default_expiry_warning_days, default_notification_days_before,
+                   default_reminder_frequency_days, default_notify_employee, default_notify_admin,
+                   default_supervision_frequency_months, supervision_months_back, supervision_months_forward,
+                   default_hidden_roles, default_hidden_employee_statuses,
+                   created_at, updated_at
+            FROM company_settings
+            LIMIT 1", conn);
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        if (await reader.ReadAsync())
+        {
+            return ReadSettings(reader);
+        }
+
+        // Return defaults if no row exists
+        return new CompanySettings();
+    }
+
+    public async Task<CompanySettings> UpdateAsync(UpdateCompanySettingsRequest request, Guid userId)
+    {
+        var existing = await GetAsync();
+
+        await using var conn = await _db.GetConnectionAsync();
+        await using var cmd = new NpgsqlCommand(@"
+            UPDATE company_settings SET
+                company_name = COALESCE(@companyName, company_name),
+                default_expiry_warning_days = COALESCE(@expiryWarningDays, default_expiry_warning_days),
+                default_notification_days_before = COALESCE(@notificationDays, default_notification_days_before),
+                default_reminder_frequency_days = COALESCE(@reminderDays, default_reminder_frequency_days),
+                default_notify_employee = COALESCE(@notifyEmployee, default_notify_employee),
+                default_notify_admin = COALESCE(@notifyAdmin, default_notify_admin),
+                default_supervision_frequency_months = COALESCE(@supervisionMonths, default_supervision_frequency_months),
+                supervision_months_back = COALESCE(@monthsBack, supervision_months_back),
+                supervision_months_forward = COALESCE(@monthsForward, supervision_months_forward),
+                default_hidden_roles = COALESCE(@hiddenRoles, default_hidden_roles),
+                default_hidden_employee_statuses = COALESCE(@hiddenStatuses, default_hidden_employee_statuses),
+                updated_at = NOW()
+            RETURNING id, company_name, default_expiry_warning_days, default_notification_days_before,
+                      default_reminder_frequency_days, default_notify_employee, default_notify_admin,
+                      default_supervision_frequency_months, supervision_months_back, supervision_months_forward,
+                      default_hidden_roles, default_hidden_employee_statuses,
+                      created_at, updated_at", conn);
+
+        cmd.Parameters.AddWithValue("companyName", (object?)request.CompanyName ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("expiryWarningDays", request.DefaultExpiryWarningDays.HasValue ? request.DefaultExpiryWarningDays.Value : DBNull.Value);
+        cmd.Parameters.AddWithValue("notificationDays", request.DefaultNotificationDaysBefore.HasValue ? request.DefaultNotificationDaysBefore.Value : DBNull.Value);
+        cmd.Parameters.AddWithValue("reminderDays", request.DefaultReminderFrequencyDays.HasValue ? request.DefaultReminderFrequencyDays.Value : DBNull.Value);
+        cmd.Parameters.AddWithValue("notifyEmployee", request.DefaultNotifyEmployee.HasValue ? request.DefaultNotifyEmployee.Value : DBNull.Value);
+        cmd.Parameters.AddWithValue("notifyAdmin", request.DefaultNotifyAdmin.HasValue ? request.DefaultNotifyAdmin.Value : DBNull.Value);
+        cmd.Parameters.AddWithValue("supervisionMonths", request.DefaultSupervisionFrequencyMonths.HasValue ? request.DefaultSupervisionFrequencyMonths.Value : DBNull.Value);
+        cmd.Parameters.AddWithValue("monthsBack", request.SupervisionMonthsBack.HasValue ? request.SupervisionMonthsBack.Value : DBNull.Value);
+        cmd.Parameters.AddWithValue("monthsForward", request.SupervisionMonthsForward.HasValue ? request.SupervisionMonthsForward.Value : DBNull.Value);
+        cmd.Parameters.AddWithValue("hiddenRoles", request.DefaultHiddenRoles != null ? request.DefaultHiddenRoles : DBNull.Value);
+        cmd.Parameters.AddWithValue("hiddenStatuses", request.DefaultHiddenEmployeeStatuses != null ? request.DefaultHiddenEmployeeStatuses : DBNull.Value);
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        await reader.ReadAsync();
+        var updated = ReadSettings(reader);
+
+        await reader.CloseAsync();
+        await _audit.LogAsync("company_settings", updated.Id, "update", userId, oldData: existing, newData: request);
+
+        return updated;
+    }
+
+    private static CompanySettings ReadSettings(NpgsqlDataReader reader)
+    {
+        return new CompanySettings
+        {
+            Id = reader.GetGuid(0),
+            CompanyName = reader.GetString(1),
+            DefaultExpiryWarningDays = reader.GetInt32(2),
+            DefaultNotificationDaysBefore = reader.GetInt32(3),
+            DefaultReminderFrequencyDays = reader.GetInt32(4),
+            DefaultNotifyEmployee = reader.GetBoolean(5),
+            DefaultNotifyAdmin = reader.GetBoolean(6),
+            DefaultSupervisionFrequencyMonths = reader.GetInt32(7),
+            SupervisionMonthsBack = reader.GetInt32(8),
+            SupervisionMonthsForward = reader.GetInt32(9),
+            DefaultHiddenRoles = reader.IsDBNull(10) ? Array.Empty<string>() : reader.GetFieldValue<string[]>(10),
+            DefaultHiddenEmployeeStatuses = reader.IsDBNull(11) ? Array.Empty<string>() : reader.GetFieldValue<string[]>(11),
+            CreatedAt = reader.GetDateTime(12),
+            UpdatedAt = reader.GetDateTime(13)
+        };
+    }
+}

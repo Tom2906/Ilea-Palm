@@ -15,6 +15,11 @@ builder.Services.AddScoped<ITrainingCourseService, TrainingCourseService>();
 builder.Services.AddScoped<ITrainingRecordService, TrainingRecordService>();
 builder.Services.AddScoped<IOnboardingService, OnboardingService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<ISupervisionService, SupervisionService>();
+builder.Services.AddScoped<ISupervisionExceptionService, SupervisionExceptionService>();
+builder.Services.AddScoped<ISupervisionRequirementService, SupervisionRequirementService>();
+builder.Services.AddScoped<IAppraisalService, AppraisalService>();
+builder.Services.AddScoped<ICompanySettingsService, CompanySettingsService>();
 
 // Controllers
 builder.Services.AddControllers();
@@ -82,6 +87,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapControllers();
+
 
 // Health check endpoint (includes DB connectivity test)
 app.MapGet("/api/health", async (IDbService db) =>

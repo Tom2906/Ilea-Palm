@@ -1,17 +1,35 @@
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
-import type { SupervisionStatus } from "@/lib/types"
+import type { SupervisionStatus, CompanySettings } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { FilterDropdown } from "@/components/filter-dropdown"
-import { CalendarHeatmapView } from "@/components/supervision/calendar-heatmap-view"
-import { ChevronLeft, ChevronRight, X } from "lucide-react"
+import { CalendarHeatmapV2 } from "@/components/supervision/calendar-heatmap-v2"
+import { X } from "lucide-react"
 
 const allStatuses = ["OK", "Due Soon", "Overdue", "Never"] as const
 
 export default function SupervisionMatrixPage() {
-  const [monthOffset, setMonthOffset] = useState(0)
   const [hidden, setHidden] = useState<Set<string>>(new Set())
+  const [defaultsApplied, setDefaultsApplied] = useState(false)
+
+  const { data: settings } = useQuery({
+    queryKey: ["company-settings"],
+    queryFn: () => api.get<CompanySettings>("/companysettings"),
+  })
+
+  // Apply default hidden filters from company settings
+  useEffect(() => {
+    if (settings && !defaultsApplied) {
+      const defaults = new Set<string>()
+      settings.defaultHiddenRoles?.forEach((role) => defaults.add(`role:${role}`))
+      settings.defaultHiddenEmployeeStatuses?.forEach((status) => defaults.add(`empStatus:${status}`))
+      if (defaults.size > 0) {
+        setHidden(defaults)
+      }
+      setDefaultsApplied(true)
+    }
+  }, [settings, defaultsApplied])
 
   const { data: statuses } = useQuery({
     queryKey: ["supervision-status"],
@@ -77,11 +95,8 @@ export default function SupervisionMatrixPage() {
   const filteredStatuses = useMemo(() => {
     if (!statuses) return []
     return statuses.filter((s) => {
-      // Check status filter
       if (hidden.has(`status:${s.status}`)) return false
-      // Check role filter
       if (s.role && hidden.has(`role:${s.role}`)) return false
-      // Check employee status filter
       if (s.employeeStatus && hidden.has(`empStatus:${s.employeeStatus}`)) return false
       return true
     })
@@ -89,32 +104,8 @@ export default function SupervisionMatrixPage() {
 
   return (
     <div className="h-full flex flex-col gap-4">
-      {/* Legend row with filters on right */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4 text-xs">
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm bg-green-500" />
-            <span>Completed</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm bg-amber-100 border border-amber-200" />
-            <span>Due Soon</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm bg-red-100 border border-red-200" />
-            <span>Overdue/Missing</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm bg-gray-200 border border-gray-300" />
-            <span>Exception</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-sm bg-gray-100 border border-gray-200" />
-            <span>Future/N/A</span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1.5">
+      {/* Filters */}
+      <div className="flex items-center justify-end gap-1.5">
           <FilterDropdown
             label="Status"
             items={statusItems}
@@ -136,54 +127,22 @@ export default function SupervisionMatrixPage() {
             onToggle={toggle}
             onToggleAll={toggleAll}
           />
-          {hidden.size > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 px-2 text-xs text-muted-foreground"
-              onClick={() => setHidden(new Set())}
-            >
-              <X className="h-3 w-3" />
-              Clear
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Month navigation */}
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setMonthOffset((prev) => prev - 1)}
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Earlier
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setMonthOffset(0)}
-          disabled={monthOffset === 0}
-        >
-          Today
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setMonthOffset((prev) => prev + 1)}
-        >
-          Later
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+        {hidden.size > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 text-xs text-muted-foreground"
+            onClick={() => setHidden(new Set())}
+          >
+            <X className="h-3 w-3" />
+            Clear
+          </Button>
+        )}
       </div>
 
       {/* Heatmap */}
       <div className="flex-1 min-h-0">
-        <CalendarHeatmapView
-          filteredStatuses={filteredStatuses}
-          monthOffset={monthOffset}
-        />
+        <CalendarHeatmapV2 filteredStatuses={filteredStatuses} />
       </div>
     </div>
   )

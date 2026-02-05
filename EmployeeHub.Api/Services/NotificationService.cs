@@ -163,6 +163,13 @@ public class NotificationService : INotificationService
         return logs;
     }
 
+    public async Task ClearLogAsync()
+    {
+        await using var conn = await _db.GetConnectionAsync();
+        await using var cmd = new NpgsqlCommand("DELETE FROM notification_log", conn);
+        await cmd.ExecuteNonQueryAsync();
+    }
+
     private async Task<List<string>> GetAdminEmailsAsync()
     {
         await using var conn = await _db.GetConnectionAsync();

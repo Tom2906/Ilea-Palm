@@ -1,0 +1,494 @@
+{
+  "reportingRelationships": [
+    {
+      "manager": "Phil",
+      "supervisee": "Sarah",
+      "frequency": 2
+    },
+    {
+      "manager": "Phil",
+      "supervisee": "Sam",
+      "frequency": 2
+    },
+    {
+      "manager": "Phil",
+      "supervisee": "James",
+      "frequency": 2
+    },
+    {
+      "manager": "Charlotte",
+      "supervisee": "William",
+      "frequency": 2
+    },
+    {
+      "manager": "DM",
+      "supervisee": "Jack",
+      "frequency": 2
+    },
+    {
+      "manager": "DM",
+      "supervisee": "Sarah",
+      "frequency": 1
+    },
+    {
+      "manager": "DM",
+      "supervisee": "Michelle",
+      "frequency": 1
+    },
+    {
+      "manager": "Michelle",
+      "supervisee": "James",
+      "frequency": 2
+    },
+    {
+      "manager": "Michelle",
+      "supervisee": "Jack",
+      "frequency": 2
+    },
+    {
+      "manager": "Leila",
+      "supervisee": "Phil",
+      "frequency": 1
+    },
+    {
+      "manager": "Leila",
+      "supervisee": "Charlotte",
+      "frequency": 1
+    },
+    {
+      "manager": "Ellen",
+      "supervisee": "Leila",
+      "frequency": 2
+    },
+    {
+      "manager": "Ellen",
+      "supervisee": "Charlotte",
+      "frequency": 2
+    },
+    {
+      "manager": "Ellen",
+      "supervisee": "Michelle",
+      "frequency": 2
+    },
+    {
+      "manager": "Ellen",
+      "supervisee": "Phil",
+      "frequency": 1
+    }
+  ],
+  "supervisions": [
+    {
+      "employee": "Sarah",
+      "conductedBy": "Phil",
+      "date": "2025-06-03",
+      "period": "2025-06",
+      "notes": null
+    },
+    {
+      "employee": "Sarah",
+      "conductedBy": "Phil",
+      "date": "2025-07-09",
+      "period": "2025-07",
+      "notes": null
+    },
+    {
+      "employee": "Sarah",
+      "conductedBy": "Phil",
+      "date": "2025-08-20",
+      "period": "2025-08",
+      "notes": "EM"
+    },
+    {
+      "employee": "Sarah",
+      "conductedBy": "Phil",
+      "date": "2025-09-13",
+      "period": "2025-09",
+      "notes": null
+    },
+    {
+      "employee": "Sam",
+      "conductedBy": "Phil",
+      "date": "2025-10-07",
+      "period": "2025-10",
+      "notes": null
+    },
+    {
+      "employee": "Sam",
+      "conductedBy": "Phil",
+      "date": "2025-11-11",
+      "period": "2025-11",
+      "notes": null
+    },
+    {
+      "employee": "Sam",
+      "conductedBy": "Phil",
+      "date": "2025-12-05",
+      "period": "2025-12",
+      "notes": null
+    },
+    {
+      "employee": "Sam",
+      "conductedBy": "Phil",
+      "date": "2026-01-05",
+      "period": "2026-01",
+      "notes": null
+    },
+    {
+      "employee": "Sam",
+      "conductedBy": "Phil",
+      "date": "2026-02-09",
+      "period": "2026-02",
+      "notes": null
+    },
+    {
+      "employee": "James",
+      "conductedBy": "Phil",
+      "date": "2025-11-04",
+      "period": "2025-11",
+      "notes": null
+    },
+    {
+      "employee": "James",
+      "conductedBy": "Phil",
+      "date": "2025-11-28",
+      "period": "2025-11",
+      "notes": null
+    },
+    {
+      "employee": "William",
+      "conductedBy": "Charlotte",
+      "date": "2025-05-30",
+      "period": "2025-05",
+      "notes": null
+    },
+    {
+      "employee": "William",
+      "conductedBy": "Charlotte",
+      "date": "2025-06-11",
+      "period": "2025-06",
+      "notes": null
+    },
+    {
+      "employee": "William",
+      "conductedBy": "Charlotte",
+      "date": "2025-07-11",
+      "period": "2025-07",
+      "notes": null
+    },
+    {
+      "employee": "Jack",
+      "conductedBy": "DM",
+      "date": "2025-10-09",
+      "period": "2025-10",
+      "notes": null
+    },
+    {
+      "employee": "Jack",
+      "conductedBy": "DM",
+      "date": "2025-11-06",
+      "period": "2025-11",
+      "notes": null
+    },
+    {
+      "employee": "Sarah",
+      "conductedBy": "DM",
+      "date": "2025-11-12",
+      "period": "2025-11",
+      "notes": null
+    },
+    {
+      "employee": "Sarah",
+      "conductedBy": "DM",
+      "date": "2025-12-19",
+      "period": "2025-12",
+      "notes": null
+    },
+    {
+      "employee": "Sarah",
+      "conductedBy": "DM",
+      "date": "2026-01-30",
+      "period": "2026-01",
+      "notes": null
+    },
+    {
+      "employee": "Michelle",
+      "conductedBy": "DM",
+      "date": "2025-11-17",
+      "period": "2025-11",
+      "notes": null
+    },
+    {
+      "employee": "Michelle",
+      "conductedBy": "DM",
+      "date": "2025-12-04",
+      "period": "2025-12",
+      "notes": null
+    },
+    {
+      "employee": "Michelle",
+      "conductedBy": "DM",
+      "date": "2026-01-14",
+      "period": "2026-01",
+      "notes": null
+    },
+    {
+      "employee": "James",
+      "conductedBy": "Michelle",
+      "date": "2025-06-05",
+      "period": "2025-06",
+      "notes": null
+    },
+    {
+      "employee": "James",
+      "conductedBy": "Michelle",
+      "date": "2025-07-07",
+      "period": "2025-07",
+      "notes": null
+    },
+    {
+      "employee": "James",
+      "conductedBy": "Michelle",
+      "date": "2025-08-06",
+      "period": "2025-08",
+      "notes": "CW"
+    },
+    {
+      "employee": "James",
+      "conductedBy": "Michelle",
+      "date": "2025-09-11",
+      "period": "2025-09",
+      "notes": null
+    },
+    {
+      "employee": "James",
+      "conductedBy": "Michelle",
+      "date": "2025-10-06",
+      "period": "2025-10",
+      "notes": null
+    },
+    {
+      "employee": "James",
+      "conductedBy": "Michelle",
+      "date": "2025-11-04",
+      "period": "2025-11",
+      "notes": null
+    },
+    {
+      "employee": "Jack",
+      "conductedBy": "Michelle",
+      "date": "2025-12-09",
+      "period": "2025-12",
+      "notes": null
+    },
+    {
+      "employee": "Phil",
+      "conductedBy": "Leila",
+      "date": "2025-05-21",
+      "period": "2025-05",
+      "notes": null
+    },
+    {
+      "employee": "Charlotte",
+      "conductedBy": "Leila",
+      "date": "2025-05-26",
+      "period": "2025-05",
+      "notes": null
+    },
+    {
+      "employee": "Leila",
+      "conductedBy": "Ellen",
+      "date": "2025-04-02",
+      "period": "2025-04",
+      "notes": null
+    },
+    {
+      "employee": "Leila",
+      "conductedBy": "Ellen",
+      "date": "2025-05-07",
+      "period": "2025-05",
+      "notes": null
+    },
+    {
+      "employee": "Leila",
+      "conductedBy": "Ellen",
+      "date": "2025-06-02",
+      "period": "2025-06",
+      "notes": null
+    },
+    {
+      "employee": "Charlotte",
+      "conductedBy": "Ellen",
+      "date": "2025-04-21",
+      "period": "2025-04",
+      "notes": null
+    },
+    {
+      "employee": "Charlotte",
+      "conductedBy": "Ellen",
+      "date": "2025-06-17",
+      "period": "2025-06",
+      "notes": null
+    },
+    {
+      "employee": "Charlotte",
+      "conductedBy": "Ellen",
+      "date": "2025-07-11",
+      "period": "2025-07",
+      "notes": null
+    },
+    {
+      "employee": "Charlotte",
+      "conductedBy": "Ellen",
+      "date": "2025-08-19",
+      "period": "2025-08",
+      "notes": null
+    },
+    {
+      "employee": "Charlotte",
+      "conductedBy": "Ellen",
+      "date": "2025-09-15",
+      "period": "2025-09",
+      "notes": null
+    },
+    {
+      "employee": "Charlotte",
+      "conductedBy": "Ellen",
+      "date": "2025-10-03",
+      "period": "2025-10",
+      "notes": null
+    },
+    {
+      "employee": "Charlotte",
+      "conductedBy": "Ellen",
+      "date": "2025-11-07",
+      "period": "2025-11",
+      "notes": null
+    },
+    {
+      "employee": "Charlotte",
+      "conductedBy": "Ellen",
+      "date": "2025-12-08",
+      "period": "2025-12",
+      "notes": null
+    },
+    {
+      "employee": "Charlotte",
+      "conductedBy": "Ellen",
+      "date": "2025-01-12",
+      "period": "2025-01",
+      "notes": null
+    },
+    {
+      "employee": "Michelle",
+      "conductedBy": "Ellen",
+      "date": "2025-04-29",
+      "period": "2025-04",
+      "notes": null
+    },
+    {
+      "employee": "Michelle",
+      "conductedBy": "Ellen",
+      "date": "2025-05-23",
+      "period": "2025-05",
+      "notes": null
+    },
+    {
+      "employee": "Michelle",
+      "conductedBy": "Ellen",
+      "date": "2025-06-13",
+      "period": "2025-06",
+      "notes": null
+    },
+    {
+      "employee": "Michelle",
+      "conductedBy": "Ellen",
+      "date": "2025-07-01",
+      "period": "2025-07",
+      "notes": null
+    },
+    {
+      "employee": "Michelle",
+      "conductedBy": "Ellen",
+      "date": "2025-08-21",
+      "period": "2025-08",
+      "notes": null
+    },
+    {
+      "employee": "Michelle",
+      "conductedBy": "Ellen",
+      "date": "2025-09-16",
+      "period": "2025-09",
+      "notes": null
+    },
+    {
+      "employee": "Michelle",
+      "conductedBy": "Ellen",
+      "date": "2025-10-10",
+      "period": "2025-10",
+      "notes": null
+    },
+    {
+      "employee": "Phil",
+      "conductedBy": "Ellen",
+      "date": "2025-04-17",
+      "period": "2025-04",
+      "notes": null
+    },
+    {
+      "employee": "Phil",
+      "conductedBy": "Ellen",
+      "date": "2025-06-20",
+      "period": "2025-06",
+      "notes": null
+    },
+    {
+      "employee": "Phil",
+      "conductedBy": "Ellen",
+      "date": "2025-07-15",
+      "period": "2025-07",
+      "notes": null
+    },
+    {
+      "employee": "Phil",
+      "conductedBy": "Ellen",
+      "date": "2025-08-15",
+      "period": "2025-08",
+      "notes": null
+    },
+    {
+      "employee": "Phil",
+      "conductedBy": "Ellen",
+      "date": "2025-09-26",
+      "period": "2025-09",
+      "notes": null
+    },
+    {
+      "employee": "Phil",
+      "conductedBy": "Ellen",
+      "date": "2025-10-22",
+      "period": "2025-10",
+      "notes": null
+    },
+    {
+      "employee": "Phil",
+      "conductedBy": "Ellen",
+      "date": "2025-11-17",
+      "period": "2025-11",
+      "notes": null
+    },
+    {
+      "employee": "Phil",
+      "conductedBy": "Ellen",
+      "date": "2025-12-23",
+      "period": "2025-12",
+      "notes": null
+    },
+    {
+      "employee": "Phil",
+      "conductedBy": "Ellen",
+      "date": "2026-01-29",
+      "period": "2026-01",
+      "notes": null
+    }
+  ]
+}

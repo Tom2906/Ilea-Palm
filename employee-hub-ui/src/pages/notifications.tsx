@@ -10,7 +10,7 @@ import { StatusBadge } from "@/components/status-badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ListRow } from "@/components/list-row"
-import { Send } from "lucide-react"
+import { Send, Trash2 } from "lucide-react"
 
 export default function NotificationsPage() {
   const queryClient = useQueryClient()
@@ -24,6 +24,13 @@ export default function NotificationsPage() {
   const { data: log, isLoading: loadingLog } = useQuery({
     queryKey: ["notifications-log"],
     queryFn: () => api.get<NotificationLogEntry[]>("/notifications/log?limit=100"),
+  })
+
+  const clearLogMutation = useMutation({
+    mutationFn: () => api.delete("/notifications/log"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications-log"] })
+    },
   })
 
   const sendMutation = useMutation({
@@ -116,7 +123,21 @@ export default function NotificationsPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="log">
+        <TabsContent value="log" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Sent notification history. Clear to allow re-sending.
+            </p>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => clearLogMutation.mutate()}
+              disabled={clearLogMutation.isPending || !log?.length}
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              {clearLogMutation.isPending ? "Clearing..." : "Clear Log"}
+            </Button>
+          </div>
           {loadingLog ? (
             <div className="space-y-2">
               {[...Array(5)].map((_, i) => (

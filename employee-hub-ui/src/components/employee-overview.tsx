@@ -266,7 +266,7 @@ function buildActivityFeed(
 ): ActivityItem[] {
   return [
     ...training
-      .filter((s) => s.completionDate)
+      .filter((s): s is TrainingStatus & { completionDate: string } => s.completionDate !== null)
       .map((s) => ({
         key: `train-${s.courseId}`,
         label: s.courseName,

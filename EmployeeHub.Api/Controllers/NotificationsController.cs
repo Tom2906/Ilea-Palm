@@ -37,6 +37,17 @@ public class NotificationsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpDelete("log")]
+    public async Task<IActionResult> ClearLog()
+    {
+        var userId = User.GetUserId();
+        if (userId == null) return Unauthorized();
+        if (!User.IsAdmin()) return Forbid();
+
+        await _notificationService.ClearLogAsync();
+        return Ok(new { message = "Notification log cleared" });
+    }
+
     [HttpGet("log")]
     public async Task<IActionResult> GetLog([FromQuery] int limit = 100)
     {

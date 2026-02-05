@@ -1,12 +1,21 @@
+const TOKEN_KEY = "auth_token"
+
 class ApiClient {
   private token: string | null = null
 
+  constructor() {
+    // Load token from localStorage on init
+    this.token = localStorage.getItem(TOKEN_KEY)
+  }
+
   setToken(token: string) {
     this.token = token
+    localStorage.setItem(TOKEN_KEY, token)
   }
 
   clearToken() {
     this.token = null
+    localStorage.removeItem(TOKEN_KEY)
   }
 
   getToken() {

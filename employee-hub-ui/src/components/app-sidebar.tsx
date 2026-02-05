@@ -9,6 +9,7 @@ import {
   Grid3X3,
   Tag,
   UserCheck,
+  Settings,
   type LucideIcon,
 } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
@@ -72,6 +73,12 @@ const adminNav: NavItem[] = [
     title: "Audit Log",
     url: "/audit-log",
     icon: FileText,
+    adminOnly: true,
+  },
+  {
+    title: "Settings",
+    url: "/settings",
+    icon: Settings,
     adminOnly: true,
   },
 ]

@@ -1,0 +1,134 @@
+{
+  "name": "Training Expiry Notifications",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Daily 8am Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "pending_notifications",
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "get-pending",
+      "name": "Get Pending Notifications",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [240, 0],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.recipient_email }}",
+        "subject": "={{ $json.status === 'Expired' ? 'EXPIRED' : 'Expiring Soon' }}: {{ $json.first_name }} {{ $json.last_name }} - {{ $json.course_name }}",
+        "message": "={{ $json.status === 'Expired' ? $json.first_name + ' ' + $json.last_name + \"'s \" + $json.course_name + ' training expired on ' + $json.expiry_date + '. Immediate action required.' : $json.first_name + ' ' + $json.last_name + \"'s \" + $json.course_name + ' training expires in ' + $json.days_until_expiry + ' days (on ' + $json.expiry_date + '). Please arrange renewal.' }}",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [480, 0],
+      "credentials": {
+        "smtp": {
+          "id": "SMTP_CREDENTIAL_ID",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "notification_log",
+        "fieldsUi": {
+          "fieldValues": [
+            { "fieldName": "training_record_id", "fieldValue": "={{ $json.training_record_id }}" },
+            { "fieldName": "employee_id", "fieldValue": "={{ $json.employee_id }}" },
+            { "fieldName": "course_id", "fieldValue": "={{ $json.course_id }}" },
+            { "fieldName": "recipient_email", "fieldValue": "={{ $json.recipient_email }}" },
+            { "fieldName": "recipient_type", "fieldValue": "={{ $json.recipient_type }}" },
+            { "fieldName": "notification_type", "fieldValue": "={{ $json.notification_type }}" },
+            { "fieldName": "days_until_expiry", "fieldValue": "={{ $json.days_until_expiry }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "log-notification",
+      "name": "Log to notification_log",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [720, 0],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Daily 8am Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Pending Notifications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Pending Notifications": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Log to notification_log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "notifications"
+    }
+  ],
+  "triggerCount": 1,
+  "pinData": {}
+}

@@ -82,6 +82,7 @@ public class TrainingCoursesController : ControllerBase
         Category = c.Category,
         ValidityMonths = c.ValidityMonths,
         NotificationDaysBefore = c.NotificationDaysBefore,
+        ReminderFrequencyDays = c.ReminderFrequencyDays,
         NotifyEmployee = c.NotifyEmployee,
         NotifyAdmin = c.NotifyAdmin,
         MandatoryForRoles = c.MandatoryForRoles,

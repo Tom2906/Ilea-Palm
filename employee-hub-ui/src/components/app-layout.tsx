@@ -21,6 +21,7 @@ const pageTitles: Record<string, string> = {
   "/employee-statuses": "Employee Statuses",
   "/notifications": "Notifications",
   "/audit-log": "Audit Log",
+  "/settings": "Settings",
   "/change-password": "Change Password",
 }
 
@@ -51,7 +52,7 @@ export default function AppLayout() {
   return (
     <SidebarProvider className="h-svh">
       <AppSidebar />
-      <SidebarInset>
+      <SidebarInset className="min-h-0 overflow-hidden">
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
@@ -63,9 +64,9 @@ export default function AppLayout() {
             </BreadcrumbList>
           </Breadcrumb>
         </header>
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+        <div className="flex-1 min-h-0 overflow-hidden p-4 md:p-6">
           <Outlet />
-        </main>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   )
