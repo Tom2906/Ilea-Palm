@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useState, useMemo } from "react"
+import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { formatDate } from "@/lib/format"
@@ -22,17 +22,28 @@ import { ReferenceCard } from "@/components/reference-card"
 import { EmployeeEditModal } from "@/components/employee-edit-modal"
 import { EmployeeOverview } from "@/components/employee-overview"
 import { RecordTrainingModal } from "@/components/record-training-modal"
+import { SupervisionTimeline } from "@/components/supervision/supervision-timeline"
+import { EmployeeAppraisalsTab } from "@/components/appraisals/employee-appraisals-tab"
 import { ArrowLeft, Settings, Calendar, GraduationCap } from "lucide-react"
 
 export default function EmployeeDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { isAdmin } = useAuth()
   const queryClient = useQueryClient()
 
   const [editOpen, setEditOpen] = useState(false)
   const [recordTrainingOpen, setRecordTrainingOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState<string>("all")
+
+  // Derive initial tab from URL query param
+  const initialTab = useMemo(() => {
+    const validTabs = ["overview", "training", "onboarding", "references", "supervision", "appraisals"]
+    const tabParam = searchParams.get("tab")
+    return tabParam && validTabs.includes(tabParam) ? tabParam : "overview"
+  }, [searchParams])
+  const [activeTab, setActiveTab] = useState<string>(initialTab)
 
   const { data: employee, isLoading: loadingEmployee } = useQuery({
     queryKey: ["employee", id],
@@ -148,12 +159,14 @@ export default function EmployeeDetailPage() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="overview" className="flex-1 flex flex-col min-h-0">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="training">Training</TabsTrigger>
           <TabsTrigger value="onboarding">Onboarding</TabsTrigger>
           <TabsTrigger value="references">References</TabsTrigger>
+          <TabsTrigger value="supervision">Supervision</TabsTrigger>
+          <TabsTrigger value="appraisals">Appraisals</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="flex-1 flex flex-col min-h-0">
@@ -265,6 +278,21 @@ export default function EmployeeDetailPage() {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        {/* Supervision Tab */}
+        <TabsContent value="supervision">
+          <SupervisionTimeline
+            employeeId={employee.id}
+            employeeName={`${employee.firstName} ${employee.lastName}`}
+            reportsTo={employee.reportsTo}
+            startDate={employee.startDate}
+          />
+        </TabsContent>
+
+        {/* Appraisals Tab */}
+        <TabsContent value="appraisals">
+          <EmployeeAppraisalsTab employeeId={employee.id} />
         </TabsContent>
       </Tabs>
 

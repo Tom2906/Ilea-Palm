@@ -23,6 +23,9 @@ export interface Employee {
   statusId: string | null
   statusName: string | null
   notes: string | null
+  reportsTo: string | null
+  supervisorName: string | null
+  supervisionFrequency: number
   createdAt: string
   updatedAt: string
 }
@@ -60,6 +63,7 @@ export interface TrainingCourse {
   category: "Online Mandatory" | "F2F Mandatory" | "Additional"
   validityMonths: number | null
   notificationDaysBefore: number
+  reminderFrequencyDays: number
   notifyEmployee: boolean
   notifyAdmin: boolean
   mandatoryForRoles: string[] | null
@@ -165,5 +169,95 @@ export interface AuditLogEntry {
   userId: string | null
   oldData: string | null
   newData: string | null
+  createdAt: string
+}
+
+export interface Supervision {
+  id: string
+  employeeId: string
+  employeeName: string
+  conductedById: string
+  conductedByName: string
+  supervisionDate: string
+  period: string
+  notes: string | null
+  isCompleted: boolean
+  requiredCount: number
+  createdAt: string
+}
+
+export interface SupervisionStatus {
+  employeeId: string
+  firstName: string
+  lastName: string
+  email: string
+  role: string
+  department: string | null
+  reportsTo: string | null
+  supervisionFrequency: number
+  supervisorName: string | null
+  lastSupervisionDate: string | null
+  daysSinceLastSupervision: number | null
+  status: "Never" | "OK" | "Due Soon" | "Overdue"
+  startDate: string
+  employeeStatus: string | null
+}
+
+export interface SupervisionSummary {
+  totalEmployees: number
+  neverSupervised: number
+  ok: number
+  dueSoon: number
+  overdue: number
+}
+
+export interface SupervisionException {
+  id: string
+  employeeId: string
+  employeeName: string
+  period: string
+  exceptionType: 'not_required' | 'annual_leave' | 'sick_leave'
+  notes: string | null
+  createdBy: string | null
+  createdByName: string | null
+  createdAt: string
+}
+
+export interface AppraisalMilestone {
+  id: string
+  employeeId: string
+  milestoneType: string
+  milestoneLabel: string
+  dueDate: string
+  completedDate: string | null
+  conductedById: string | null
+  conductedByName: string | null
+  notes: string | null
+  status: 'completed' | 'due_soon' | 'overdue' | 'not_yet_due'
+  daysUntilDue: number | null
+}
+
+export interface AppraisalMatrixRow {
+  employeeId: string
+  firstName: string
+  lastName: string
+  role: string
+  startDate: string
+  milestones: AppraisalMilestone[]
+}
+
+export interface AppraisalSummary {
+  totalMilestones: number
+  completed: number
+  dueSoon: number
+  overdue: number
+  notYetDue: number
+}
+
+export interface SupervisionRequirement {
+  id: string
+  employeeId: string
+  effectiveFrom: string
+  requiredCount: number
   createdAt: string
 }

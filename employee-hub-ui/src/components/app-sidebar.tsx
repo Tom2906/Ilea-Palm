@@ -1,12 +1,14 @@
 import {
   BookOpen,
   ClipboardCheck,
+  ClipboardList,
   Home,
   Bell,
   Users,
   FileText,
   Grid3X3,
   Tag,
+  UserCheck,
   type LucideIcon,
 } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
@@ -43,6 +45,8 @@ const mainNav: NavItem[] = [
   { title: "Employees", url: "/employees", icon: Users },
   { title: "Training Matrix", url: "/training-matrix", icon: Grid3X3 },
   { title: "Training Courses", url: "/training-courses", icon: BookOpen },
+  { title: "Supervision Matrix", url: "/supervision-matrix", icon: UserCheck },
+  { title: "Appraisals", url: "/appraisals", icon: ClipboardList },
 ]
 
 const adminNav: NavItem[] = [

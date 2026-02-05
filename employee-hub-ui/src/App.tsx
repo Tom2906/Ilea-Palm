@@ -12,6 +12,8 @@ import EmployeeDetailPage from "@/pages/employee-detail"
 import EmployeeFormPage from "@/pages/employee-form"
 import EmployeeStatusesPage from "@/pages/employee-statuses"
 import TrainingMatrixPage from "@/pages/training-matrix"
+import SupervisionMatrixPage from "@/pages/supervision-matrix"
+import AppraisalsPage from "@/pages/appraisals"
 import AuditLogPage from "@/pages/audit-log"
 import ChangePasswordPage from "@/pages/change-password"
 
@@ -39,6 +41,8 @@ export default function App() {
               <Route path="/employees/:id/edit" element={<EmployeeFormPage />} />
               <Route path="/training-courses" element={<TrainingCoursesPage />} />
               <Route path="/training-matrix" element={<TrainingMatrixPage />} />
+              <Route path="/supervision-matrix" element={<SupervisionMatrixPage />} />
+              <Route path="/appraisals" element={<AppraisalsPage />} />
               <Route path="/onboarding-items" element={<OnboardingItemsPage />} />
               <Route path="/employee-statuses" element={<EmployeeStatusesPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
