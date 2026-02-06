@@ -6,10 +6,15 @@ public class User
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
-    public string Role { get; set; } = "user";
+    public Guid RoleId { get; set; }
     public Guid? EmployeeId { get; set; }
     public bool Active { get; set; } = true;
     public DateTime? LastLogin { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+
+    // Populated from join — not stored on users table
+    public string RoleName { get; set; } = string.Empty;
+    public string DataScope { get; set; } = "own";
+    public List<string> Permissions { get; set; } = new();
 }

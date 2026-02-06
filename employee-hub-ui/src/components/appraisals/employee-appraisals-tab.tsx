@@ -29,7 +29,7 @@ interface EmployeeAppraisalsTabProps {
 }
 
 export function EmployeeAppraisalsTab({ employeeId }: EmployeeAppraisalsTabProps) {
-  const { isAdmin } = useAuth()
+  const { hasPermission } = useAuth()
   const queryClient = useQueryClient()
   const [selectedMilestone, setSelectedMilestone] = useState<AppraisalMilestone | null>(null)
   const [completeModalOpen, setCompleteModalOpen] = useState(false)
@@ -70,7 +70,7 @@ export function EmployeeAppraisalsTab({ employeeId }: EmployeeAppraisalsTabProps
         <p className="text-muted-foreground mb-4">
           No appraisal milestones have been generated for this employee yet.
         </p>
-        {isAdmin && (
+        {hasPermission("appraisals.manage") && (
           <Button
             onClick={() => generateMutation.mutate()}
             disabled={generateMutation.isPending}
@@ -104,7 +104,7 @@ export function EmployeeAppraisalsTab({ employeeId }: EmployeeAppraisalsTabProps
             key={milestone.id}
             milestone={milestone}
             onMarkComplete={handleMarkComplete}
-            isAdmin={isAdmin}
+            canManage={hasPermission("appraisals.manage")}
           />
         ))}
       </div>
@@ -122,10 +122,10 @@ export function EmployeeAppraisalsTab({ employeeId }: EmployeeAppraisalsTabProps
 interface MilestoneItemProps {
   milestone: AppraisalMilestone
   onMarkComplete: (milestone: AppraisalMilestone) => void
-  isAdmin: boolean
+  canManage: boolean
 }
 
-function MilestoneItem({ milestone, onMarkComplete, isAdmin }: MilestoneItemProps) {
+function MilestoneItem({ milestone, onMarkComplete, canManage }: MilestoneItemProps) {
   const isCompleted = milestone.status === "completed"
 
   // Status-based styling
@@ -189,7 +189,7 @@ function MilestoneItem({ milestone, onMarkComplete, isAdmin }: MilestoneItemProp
       </div>
 
       {/* Action button */}
-      {!isCompleted && isAdmin && (
+      {!isCompleted && canManage && (
         <Button
           variant="outline"
           size="sm"

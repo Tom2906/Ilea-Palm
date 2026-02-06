@@ -21,4 +21,6 @@ public class UpdateCompanySettingsRequest
     public int? SupervisionMonthsForward { get; set; }
     public string[]? DefaultHiddenRoles { get; set; }
     public string[]? DefaultHiddenEmployeeStatuses { get; set; }
+    public string[]? DefaultHiddenRotaRoles { get; set; }
+    public string[]? DefaultHiddenRotaEmployeeStatuses { get; set; }
 }

@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
-import type { CompanySettings, Employee, EmployeeStatus } from "@/lib/types"
+import type { CompanySettings, Employee, EmployeeStatus, MonthlyHours } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -36,6 +36,55 @@ export default function SettingsPage() {
     return [...new Set(employees.map((e) => e.role).filter(Boolean))].sort()
   }, [employees])
 
+  // Rota monthly hours state
+  const [rotaYear, setRotaYear] = useState(new Date().getFullYear())
+  const [rotaHours, setRotaHours] = useState<Record<number, string>>({})
+  const [rotaSaving, setRotaSaving] = useState(false)
+  const [rotaSuccess, setRotaSuccess] = useState(false)
+
+  const { data: monthlyHours } = useQuery({
+    queryKey: ["monthly-hours", rotaYear],
+    queryFn: () => api.get<MonthlyHours[]>(`/rota/monthly-hours?year=${rotaYear}`),
+  })
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ]
+
+  const getMonthHours = (month: number): string => {
+    if (rotaHours[month] !== undefined) return rotaHours[month]
+    const existing = monthlyHours?.find((h) => h.month === month)
+    return existing ? String(existing.contractedHours) : ""
+  }
+
+  const saveMonthlyHours = async () => {
+    setRotaSaving(true)
+    setError("")
+    try {
+      const changed = Object.keys(rotaHours).map(Number)
+      for (const m of changed) {
+        const val = rotaHours[m]
+        if (val && !isNaN(parseFloat(val))) {
+          await api.post("/rota/monthly-hours", {
+            year: rotaYear,
+            month: m,
+            contractedHours: parseFloat(val),
+          })
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ["monthly-hours", rotaYear] })
+      setRotaHours({})
+      setRotaSuccess(true)
+      setTimeout(() => setRotaSuccess(false), 3000)
+    } catch (err: any) {
+      setError(err.message)
+    }
+    setRotaSaving(false)
+  }
+
+  const rotaDirty = Object.keys(rotaHours).length > 0
+
   const [form, setForm] = useState<Partial<CompanySettings>>({})
 
   // Sync form with loaded settings
@@ -51,6 +100,8 @@ export default function SettingsPage() {
     supervisionMonthsForward: form.supervisionMonthsForward ?? settings?.supervisionMonthsForward ?? 3,
     defaultHiddenRoles: form.defaultHiddenRoles ?? settings?.defaultHiddenRoles ?? [],
     defaultHiddenEmployeeStatuses: form.defaultHiddenEmployeeStatuses ?? settings?.defaultHiddenEmployeeStatuses ?? [],
+    defaultHiddenRotaRoles: form.defaultHiddenRotaRoles ?? settings?.defaultHiddenRotaRoles ?? [],
+    defaultHiddenRotaEmployeeStatuses: form.defaultHiddenRotaEmployeeStatuses ?? settings?.defaultHiddenRotaEmployeeStatuses ?? [],
   }
 
   const toggleHiddenRole = (role: string) => {
@@ -67,6 +118,22 @@ export default function SettingsPage() {
       ? current.filter((s) => s !== status)
       : [...current, status]
     setForm({ ...form, defaultHiddenEmployeeStatuses: next })
+  }
+
+  const toggleHiddenRotaRole = (role: string) => {
+    const current = currentForm.defaultHiddenRotaRoles
+    const next = current.includes(role)
+      ? current.filter((r) => r !== role)
+      : [...current, role]
+    setForm({ ...form, defaultHiddenRotaRoles: next })
+  }
+
+  const toggleHiddenRotaStatus = (status: string) => {
+    const current = currentForm.defaultHiddenRotaEmployeeStatuses
+    const next = current.includes(status)
+      ? current.filter((s) => s !== status)
+      : [...current, status]
+    setForm({ ...form, defaultHiddenRotaEmployeeStatuses: next })
   }
 
   const updateMutation = useMutation({
@@ -100,6 +167,8 @@ export default function SettingsPage() {
       supervisionMonthsForward: currentForm.supervisionMonthsForward,
       defaultHiddenRoles: currentForm.defaultHiddenRoles,
       defaultHiddenEmployeeStatuses: currentForm.defaultHiddenEmployeeStatuses,
+      defaultHiddenRotaRoles: currentForm.defaultHiddenRotaRoles,
+      defaultHiddenRotaEmployeeStatuses: currentForm.defaultHiddenRotaEmployeeStatuses,
     })
   }
 
@@ -132,6 +201,7 @@ export default function SettingsPage() {
           <TabsTrigger value="company">Company</TabsTrigger>
           <TabsTrigger value="training">Training</TabsTrigger>
           <TabsTrigger value="supervision">Supervision</TabsTrigger>
+          <TabsTrigger value="rota">Rota</TabsTrigger>
         </TabsList>
 
         <TabsContent value="company" className="space-y-6 mt-6">
@@ -347,6 +417,133 @@ export default function SettingsPage() {
                     </p>
                   </Field>
                 </div>
+              </FieldGroup>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="rota" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Monthly Contracted Hours</CardTitle>
+              <CardDescription>
+                Set contracted hours per month — used to calculate over/under on the rota grid
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2 mb-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setRotaYear(rotaYear - 1); setRotaHours({}) }}
+                >
+                  &larr;
+                </Button>
+                <span className="text-sm font-semibold min-w-[60px] text-center">{rotaYear}</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setRotaYear(rotaYear + 1); setRotaHours({}) }}
+                >
+                  &rarr;
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-w-2xl">
+                {monthNames.map((name, idx) => {
+                  const month = idx + 1
+                  return (
+                    <div key={month} className="flex items-center gap-2">
+                      <label className="text-sm w-20 shrink-0">{name.slice(0, 3)}</label>
+                      <Input
+                        type="number"
+                        step="0.5"
+                        className="w-24"
+                        placeholder="—"
+                        value={getMonthHours(month)}
+                        onChange={(e) => setRotaHours({ ...rotaHours, [month]: e.target.value })}
+                        disabled={rotaSaving}
+                      />
+                    </div>
+                  )
+                })}
+              </div>
+              {rotaSuccess && (
+                <div className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700 mt-4">
+                  Monthly hours saved
+                </div>
+              )}
+              <div className="flex justify-end mt-4">
+                {rotaDirty && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mr-2"
+                    onClick={() => setRotaHours({})}
+                    disabled={rotaSaving}
+                  >
+                    Reset
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  onClick={saveMonthlyHours}
+                  disabled={rotaSaving || !rotaDirty}
+                >
+                  {rotaSaving ? "Saving..." : "Save Hours"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Default Rota Filters</CardTitle>
+              <CardDescription>
+                Hide these roles and statuses by default on the Rota page (separate from Training/Supervision filters)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FieldGroup>
+                <Field>
+                  <FieldLabel>Hidden Roles</FieldLabel>
+                  <div className="flex flex-wrap gap-4 mt-2">
+                    {roles.map((role) => (
+                      <div key={role} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`rota-role-${role}`}
+                          checked={currentForm.defaultHiddenRotaRoles.includes(role)}
+                          onCheckedChange={() => toggleHiddenRotaRole(role)}
+                          disabled={updateMutation.isPending}
+                        />
+                        <label htmlFor={`rota-role-${role}`} className="text-sm">{role}</label>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Employees with these roles will be hidden by default on the rota
+                  </p>
+                </Field>
+                <Field>
+                  <FieldLabel>Hidden Employee Statuses</FieldLabel>
+                  <div className="flex flex-wrap gap-4 mt-2">
+                    {employeeStatuses?.map((status) => (
+                      <div key={status.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`rota-status-${status.id}`}
+                          checked={currentForm.defaultHiddenRotaEmployeeStatuses.includes(status.name)}
+                          onCheckedChange={() => toggleHiddenRotaStatus(status.name)}
+                          disabled={updateMutation.isPending}
+                        />
+                        <label htmlFor={`rota-status-${status.id}`} className="text-sm">{status.name}</label>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Employees with these statuses will be hidden by default on the rota
+                  </p>
+                </Field>
               </FieldGroup>
             </CardContent>
           </Card>

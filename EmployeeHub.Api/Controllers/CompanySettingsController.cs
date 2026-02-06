@@ -29,7 +29,7 @@ public class CompanySettingsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.IsAdmin()) return Forbid();
+        if (!User.HasPermission("settings.manage")) return StatusCode(403);
 
         var settings = await _service.UpdateAsync(request, userId.Value);
         return Ok(settings);

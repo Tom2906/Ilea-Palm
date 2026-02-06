@@ -2,8 +2,36 @@ export interface UserInfo {
   id: string
   email: string
   displayName: string
-  role: "admin" | "user"
+  roleName: string
+  dataScope: "all" | "reports" | "own"
+  permissions: string[]
   employeeId: string | null
+  directReportIds?: string[]
+}
+
+export interface RoleResponse {
+  id: string
+  name: string
+  description: string | null
+  dataScope: "all" | "reports" | "own"
+  isSystem: boolean
+  permissions: string[]
+  userCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface UserListResponse {
+  id: string
+  email: string
+  displayName: string
+  roleId: string
+  roleName: string
+  employeeId: string | null
+  employeeName: string | null
+  active: boolean
+  lastLogin: string | null
+  createdAt: string
 }
 
 export interface LoginResponse {
@@ -276,6 +304,98 @@ export interface CompanySettings {
   supervisionMonthsForward: number
   defaultHiddenRoles: string[]
   defaultHiddenEmployeeStatuses: string[]
+  defaultHiddenRotaRoles: string[]
+  defaultHiddenRotaEmployeeStatuses: string[]
   createdAt: string
   updatedAt: string
+}
+
+export interface ShiftType {
+  id: string
+  code: string
+  name: string
+  defaultHours: number
+  includesSleep: boolean
+  displayColor: string | null
+  sortOrder: number
+}
+
+export interface Shift {
+  id: string
+  employeeId: string
+  date: string
+  shiftTypeId: string
+  shiftTypeCode: string
+  hours: number
+  includesSleep: boolean
+  displayColor: string | null
+  notes: string | null
+}
+
+export interface RotaEmployee {
+  employeeId: string
+  firstName: string
+  lastName: string
+  role: string
+  shifts: Record<string, Shift>
+  leaveDates: string[]
+  summary: {
+    totalHours: number
+    totalSleeps: number
+    overUnder: number | null
+    annualLeaveDays: number
+  }
+}
+
+export interface RotaMonth {
+  month: number
+  year: number
+  daysInMonth: number
+  contractedHours: number | null
+  staff: RotaEmployee[]
+  shiftTypes: ShiftType[]
+}
+
+export interface MonthlyHours {
+  id: string
+  year: number
+  month: number
+  contractedHours: number
+}
+
+export interface LeaveRequest {
+  id: string
+  employeeId: string
+  employeeName: string
+  startDate: string
+  endDate: string
+  totalDays: number
+  status: "pending" | "approved" | "rejected" | "cancelled"
+  requestedBy: string
+  requestedByName: string
+  approvedBy: string | null
+  approvedByName: string | null
+  approvedAt: string | null
+  notes: string | null
+  createdAt: string
+}
+
+export interface LeaveBalance {
+  totalEntitlement: number
+  carriedOver: number
+  approvedDaysTaken: number
+  pendingDays: number
+  remaining: number
+}
+
+export interface LeaveEntitlement {
+  id: string
+  employeeId: string
+  employeeName: string
+  year: number
+  totalDays: number
+  carriedOver: number
+  approvedDays: number
+  remainingDays: number
+  notes: string | null
 }

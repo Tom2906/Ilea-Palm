@@ -48,7 +48,7 @@ public class SupervisionExceptionsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.IsAdmin()) return Forbid();
+        if (!User.HasPermission("supervisions.manage")) return StatusCode(403);
 
         // Validate exception_type
         var validTypes = new[] { "not_required", "annual_leave", "sick_leave" };
@@ -79,7 +79,7 @@ public class SupervisionExceptionsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.IsAdmin()) return Forbid();
+        if (!User.HasPermission("supervisions.manage")) return StatusCode(403);
 
         var success = await _exceptionService.DeleteAsync(id, userId.Value);
         if (!success) return NotFound();

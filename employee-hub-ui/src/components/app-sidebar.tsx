@@ -1,5 +1,7 @@
 import {
   BookOpen,
+  Calendar,
+  CalendarDays,
   ClipboardCheck,
   ClipboardList,
   Home,
@@ -10,6 +12,8 @@ import {
   Tag,
   UserCheck,
   Settings,
+  Shield,
+  UserCog,
   type LucideIcon,
 } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
@@ -38,7 +42,7 @@ interface NavItem {
   title: string
   url: string
   icon: LucideIcon
-  adminOnly?: boolean
+  permission?: string
 }
 
 const mainNav: NavItem[] = [
@@ -48,43 +52,22 @@ const mainNav: NavItem[] = [
   { title: "Training Courses", url: "/training-courses", icon: BookOpen },
   { title: "Supervision Matrix", url: "/supervision-matrix", icon: UserCheck },
   { title: "Appraisals", url: "/appraisals", icon: ClipboardList },
+  { title: "Rotas", url: "/rotas", icon: Calendar },
+  { title: "Leave", url: "/leave", icon: CalendarDays },
 ]
 
 const adminNav: NavItem[] = [
-  {
-    title: "Onboarding Items",
-    url: "/onboarding-items",
-    icon: ClipboardCheck,
-    adminOnly: true,
-  },
-  {
-    title: "Employee Statuses",
-    url: "/employee-statuses",
-    icon: Tag,
-    adminOnly: true,
-  },
-  {
-    title: "Notifications",
-    url: "/notifications",
-    icon: Bell,
-    adminOnly: true,
-  },
-  {
-    title: "Audit Log",
-    url: "/audit-log",
-    icon: FileText,
-    adminOnly: true,
-  },
-  {
-    title: "Settings",
-    url: "/settings",
-    icon: Settings,
-    adminOnly: true,
-  },
+  { title: "Onboarding Items", url: "/onboarding-items", icon: ClipboardCheck, permission: "onboarding.manage" },
+  { title: "Employee Statuses", url: "/employee-statuses", icon: Tag, permission: "employee_statuses.manage" },
+  { title: "Notifications", url: "/notifications", icon: Bell, permission: "notifications.manage" },
+  { title: "Audit Log", url: "/audit-log", icon: FileText, permission: "audit_log.view" },
+  { title: "Roles", url: "/roles", icon: Shield, permission: "users.manage" },
+  { title: "Users", url: "/users", icon: UserCog, permission: "users.manage" },
+  { title: "Settings", url: "/settings", icon: Settings, permission: "settings.manage" },
 ]
 
 export function AppSidebar() {
-  const { user, logout, isAdmin } = useAuth()
+  const { user, logout, hasPermission } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -93,6 +76,10 @@ export function AppSidebar() {
     .map((n) => n[0])
     .join("")
     .toUpperCase() ?? "?"
+
+  const visibleAdminNav = adminNav.filter(
+    (item) => !item.permission || hasPermission(item.permission),
+  )
 
   return (
     <Sidebar>
@@ -126,12 +113,12 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {isAdmin && (
+        {visibleAdminNav.length > 0 && (
           <SidebarGroup>
             <SidebarGroupLabel>Admin</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {adminNav.map((item) => (
+                {visibleAdminNav.map((item) => (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton
                       isActive={location.pathname === item.url}
@@ -163,7 +150,7 @@ export function AppSidebar() {
                   <div className="flex flex-col text-left text-xs leading-tight">
                     <span className="font-medium">{user?.displayName}</span>
                     <span className="text-sidebar-foreground/60">
-                      {user?.role}
+                      {user?.roleName}
                     </span>
                   </div>
                 </SidebarMenuButton>

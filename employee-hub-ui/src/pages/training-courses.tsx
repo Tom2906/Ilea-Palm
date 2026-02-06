@@ -40,7 +40,7 @@ const defaultForm = {
 }
 
 export default function TrainingCoursesPage() {
-  const { isAdmin } = useAuth()
+  const { hasPermission } = useAuth()
   const queryClient = useQueryClient()
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -144,7 +144,7 @@ export default function TrainingCoursesPage() {
             ))}
           </SelectContent>
         </Select>
-        {isAdmin && (
+        {hasPermission("training_courses.manage") && (
           <Button size="sm" onClick={openCreate}>
             <Plus className="h-4 w-4 mr-1" />
             Add Course
@@ -182,7 +182,7 @@ export default function TrainingCoursesPage() {
               <Badge variant="outline" className="text-xs shrink-0">
                 {c.category}
               </Badge>
-              {isAdmin && (
+              {hasPermission("training_courses.manage") && (
                 <Button
                   variant="ghost"
                   size="sm"

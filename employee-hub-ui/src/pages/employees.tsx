@@ -14,7 +14,7 @@ import { Plus, Search } from "lucide-react"
 
 export default function EmployeesPage() {
   const navigate = useNavigate()
-  const { isAdmin } = useAuth()
+  const { hasPermission } = useAuth()
   const [search, setSearch] = useState("")
   const [showInactive, setShowInactive] = useState(false)
 
@@ -54,7 +54,7 @@ export default function EmployeesPage() {
           >
             {showInactive ? "Showing All" : "Active Only"}
           </Button>
-          {isAdmin && (
+          {hasPermission("employees.manage") && (
             <Button size="sm" onClick={() => navigate("/employees/new")}>
               <Plus className="h-4 w-4 mr-1" />
               Add Employee

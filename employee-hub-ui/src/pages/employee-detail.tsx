@@ -24,13 +24,14 @@ import { EmployeeOverview } from "@/components/employee-overview"
 import { RecordTrainingModal } from "@/components/record-training-modal"
 import { SupervisionTimeline } from "@/components/supervision/supervision-timeline"
 import { EmployeeAppraisalsTab } from "@/components/appraisals/employee-appraisals-tab"
+import { EmployeeLeaveTab } from "@/components/leave/employee-leave-tab"
 import { ArrowLeft, Settings, Calendar, GraduationCap } from "lucide-react"
 
 export default function EmployeeDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { isAdmin } = useAuth()
+  const { hasPermission } = useAuth()
   const queryClient = useQueryClient()
 
   const [editOpen, setEditOpen] = useState(false)
@@ -39,7 +40,7 @@ export default function EmployeeDetailPage() {
 
   // Derive initial tab from URL query param
   const initialTab = useMemo(() => {
-    const validTabs = ["overview", "training", "onboarding", "references", "supervision", "appraisals"]
+    const validTabs = ["overview", "training", "onboarding", "references", "supervision", "appraisals", "leave"]
     const tabParam = searchParams.get("tab")
     return tabParam && validTabs.includes(tabParam) ? tabParam : "overview"
   }, [searchParams])
@@ -150,7 +151,7 @@ export default function EmployeeDetailPage() {
           <Button variant="ghost" size="icon" className="h-8 w-8" title="Calendar">
             <Calendar className="h-4 w-4" />
           </Button>
-          {isAdmin && (
+          {hasPermission("employees.manage") && (
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditOpen(true)} title="Edit employee details">
               <Settings className="h-4 w-4" />
             </Button>
@@ -167,6 +168,7 @@ export default function EmployeeDetailPage() {
           <TabsTrigger value="references">References</TabsTrigger>
           <TabsTrigger value="supervision">Supervision</TabsTrigger>
           <TabsTrigger value="appraisals">Appraisals</TabsTrigger>
+          <TabsTrigger value="leave">Leave</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="flex-1 flex flex-col min-h-0">
@@ -245,7 +247,7 @@ export default function EmployeeDetailPage() {
                 <ListRow key={record.id} className="gap-3">
                   <Checkbox
                     checked={record.status === "complete"}
-                    disabled={!isAdmin || updateOnboarding.isPending}
+                    disabled={!hasPermission("onboarding.manage") || updateOnboarding.isPending}
                     onCheckedChange={(checked) => {
                       updateOnboarding.mutate({ recordId: record.id, status: checked ? "complete" : "pending" })
                     }}
@@ -293,6 +295,14 @@ export default function EmployeeDetailPage() {
         {/* Appraisals Tab */}
         <TabsContent value="appraisals">
           <EmployeeAppraisalsTab employeeId={employee.id} />
+        </TabsContent>
+
+        {/* Leave Tab */}
+        <TabsContent value="leave">
+          <EmployeeLeaveTab
+            employeeId={employee.id}
+            employeeName={`${employee.firstName} ${employee.lastName}`}
+          />
         </TabsContent>
       </Tabs>
 

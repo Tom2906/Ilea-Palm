@@ -20,6 +20,10 @@ builder.Services.AddScoped<ISupervisionExceptionService, SupervisionExceptionSer
 builder.Services.AddScoped<ISupervisionRequirementService, SupervisionRequirementService>();
 builder.Services.AddScoped<IAppraisalService, AppraisalService>();
 builder.Services.AddScoped<ICompanySettingsService, CompanySettingsService>();
+builder.Services.AddScoped<IRotaService, RotaService>();
+builder.Services.AddScoped<ILeaveService, LeaveService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IUserManagementService, UserManagementService>();
 
 // Controllers
 builder.Services.AddControllers();

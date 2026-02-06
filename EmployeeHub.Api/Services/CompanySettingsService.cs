@@ -22,6 +22,7 @@ public class CompanySettingsService : ICompanySettingsService
                    default_reminder_frequency_days, default_notify_employee, default_notify_admin,
                    default_supervision_frequency_months, supervision_months_back, supervision_months_forward,
                    default_hidden_roles, default_hidden_employee_statuses,
+                   default_hidden_rota_roles, default_hidden_rota_employee_statuses,
                    created_at, updated_at
             FROM company_settings
             LIMIT 1", conn);
@@ -54,11 +55,14 @@ public class CompanySettingsService : ICompanySettingsService
                 supervision_months_forward = COALESCE(@monthsForward, supervision_months_forward),
                 default_hidden_roles = COALESCE(@hiddenRoles, default_hidden_roles),
                 default_hidden_employee_statuses = COALESCE(@hiddenStatuses, default_hidden_employee_statuses),
+                default_hidden_rota_roles = COALESCE(@hiddenRotaRoles, default_hidden_rota_roles),
+                default_hidden_rota_employee_statuses = COALESCE(@hiddenRotaStatuses, default_hidden_rota_employee_statuses),
                 updated_at = NOW()
             RETURNING id, company_name, default_expiry_warning_days, default_notification_days_before,
                       default_reminder_frequency_days, default_notify_employee, default_notify_admin,
                       default_supervision_frequency_months, supervision_months_back, supervision_months_forward,
                       default_hidden_roles, default_hidden_employee_statuses,
+                      default_hidden_rota_roles, default_hidden_rota_employee_statuses,
                       created_at, updated_at", conn);
 
         cmd.Parameters.AddWithValue("companyName", (object?)request.CompanyName ?? DBNull.Value);
@@ -72,6 +76,8 @@ public class CompanySettingsService : ICompanySettingsService
         cmd.Parameters.AddWithValue("monthsForward", request.SupervisionMonthsForward.HasValue ? request.SupervisionMonthsForward.Value : DBNull.Value);
         cmd.Parameters.AddWithValue("hiddenRoles", request.DefaultHiddenRoles != null ? request.DefaultHiddenRoles : DBNull.Value);
         cmd.Parameters.AddWithValue("hiddenStatuses", request.DefaultHiddenEmployeeStatuses != null ? request.DefaultHiddenEmployeeStatuses : DBNull.Value);
+        cmd.Parameters.AddWithValue("hiddenRotaRoles", request.DefaultHiddenRotaRoles != null ? request.DefaultHiddenRotaRoles : DBNull.Value);
+        cmd.Parameters.AddWithValue("hiddenRotaStatuses", request.DefaultHiddenRotaEmployeeStatuses != null ? request.DefaultHiddenRotaEmployeeStatuses : DBNull.Value);
 
         await using var reader = await cmd.ExecuteReaderAsync();
         await reader.ReadAsync();
@@ -99,8 +105,10 @@ public class CompanySettingsService : ICompanySettingsService
             SupervisionMonthsForward = reader.GetInt32(9),
             DefaultHiddenRoles = reader.IsDBNull(10) ? Array.Empty<string>() : reader.GetFieldValue<string[]>(10),
             DefaultHiddenEmployeeStatuses = reader.IsDBNull(11) ? Array.Empty<string>() : reader.GetFieldValue<string[]>(11),
-            CreatedAt = reader.GetDateTime(12),
-            UpdatedAt = reader.GetDateTime(13)
+            DefaultHiddenRotaRoles = reader.IsDBNull(12) ? Array.Empty<string>() : reader.GetFieldValue<string[]>(12),
+            DefaultHiddenRotaEmployeeStatuses = reader.IsDBNull(13) ? Array.Empty<string>() : reader.GetFieldValue<string[]>(13),
+            CreatedAt = reader.GetDateTime(14),
+            UpdatedAt = reader.GetDateTime(15)
         };
     }
 }

@@ -32,13 +32,21 @@ public class SeedController : ControllerBase
         // Create admin user with default password (must be changed on first login)
         var passwordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!");
 
+        // Get Administrator role ID
+        await using var roleCmd = new NpgsqlCommand(
+            "SELECT id FROM roles WHERE name = 'Administrator'", conn);
+        var roleId = await roleCmd.ExecuteScalarAsync() as Guid?;
+        if (roleId == null)
+            return BadRequest(new { error = "Administrator role not found. Run the permissions migration first." });
+
         await using var cmd = new NpgsqlCommand(@"
-            INSERT INTO users (email, password_hash, display_name, role)
-            VALUES (@email, @hash, @name, 'admin')
-            RETURNING id, email, display_name, role", conn);
+            INSERT INTO users (email, password_hash, display_name, role_id)
+            VALUES (@email, @hash, @name, @roleId)
+            RETURNING id, email, display_name", conn);
         cmd.Parameters.AddWithValue("email", "admin@ileapalm.co.uk");
         cmd.Parameters.AddWithValue("hash", passwordHash);
         cmd.Parameters.AddWithValue("name", "Admin");
+        cmd.Parameters.AddWithValue("roleId", roleId.Value);
 
         await using var reader = await cmd.ExecuteReaderAsync();
         await reader.ReadAsync();

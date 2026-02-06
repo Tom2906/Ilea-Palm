@@ -22,8 +22,17 @@ public class UserInfo
     public Guid Id { get; set; }
     public string Email { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
-    public string Role { get; set; } = string.Empty;
+    public string RoleName { get; set; } = string.Empty;
+    public string DataScope { get; set; } = "own";
+    public List<string> Permissions { get; set; } = new();
     public Guid? EmployeeId { get; set; }
+    public List<Guid>? DirectReportIds { get; set; }
+}
+
+public class MicrosoftLoginRequest
+{
+    [Required]
+    public string IdToken { get; set; } = string.Empty;
 }
 
 public class ChangePasswordRequest

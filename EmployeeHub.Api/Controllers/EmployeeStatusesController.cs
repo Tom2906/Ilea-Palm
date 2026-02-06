@@ -31,7 +31,7 @@ public class EmployeeStatusesController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.IsAdmin()) return Forbid();
+        if (!User.HasPermission("employee_statuses.manage")) return StatusCode(403);
 
         var status = await _statusService.CreateAsync(request, userId.Value);
         return CreatedAtAction(nameof(GetAll), MapToResponse(status));
@@ -42,7 +42,7 @@ public class EmployeeStatusesController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.IsAdmin()) return Forbid();
+        if (!User.HasPermission("employee_statuses.manage")) return StatusCode(403);
 
         var status = await _statusService.UpdateAsync(id, request, userId.Value);
         if (status == null) return NotFound();

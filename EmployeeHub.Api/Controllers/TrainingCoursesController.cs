@@ -42,7 +42,7 @@ public class TrainingCoursesController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.IsAdmin()) return Forbid();
+        if (!User.HasPermission("training_courses.manage")) return StatusCode(403);
 
         var course = await _courseService.CreateAsync(request, userId.Value);
         return CreatedAtAction(nameof(GetById), new { id = course.Id }, MapToResponse(course));
@@ -53,7 +53,7 @@ public class TrainingCoursesController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.IsAdmin()) return Forbid();
+        if (!User.HasPermission("training_courses.manage")) return StatusCode(403);
 
         var course = await _courseService.UpdateAsync(id, request, userId.Value);
         if (course == null) return NotFound();
@@ -66,7 +66,7 @@ public class TrainingCoursesController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.IsAdmin()) return Forbid();
+        if (!User.HasPermission("training_courses.manage")) return StatusCode(403);
 
         var success = await _courseService.DeleteAsync(id, userId.Value);
         if (!success) return NotFound();

@@ -21,7 +21,7 @@ public class AuditLogController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.IsAdmin()) return Forbid();
+        if (!User.HasPermission("audit_log.view")) return StatusCode(403);
 
         await using var conn = await _db.GetConnectionAsync();
 

@@ -20,7 +20,7 @@ public class NotificationsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.IsAdmin()) return Forbid();
+        if (!User.HasPermission("notifications.manage")) return StatusCode(403);
 
         var pending = await _notificationService.GetPendingAsync();
         return Ok(pending);
@@ -31,7 +31,7 @@ public class NotificationsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.IsAdmin()) return Forbid();
+        if (!User.HasPermission("notifications.manage")) return StatusCode(403);
 
         var result = await _notificationService.SendNotificationsAsync(userId.Value);
         return Ok(result);
@@ -42,7 +42,7 @@ public class NotificationsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.IsAdmin()) return Forbid();
+        if (!User.HasPermission("notifications.manage")) return StatusCode(403);
 
         await _notificationService.ClearLogAsync();
         return Ok(new { message = "Notification log cleared" });
@@ -53,7 +53,7 @@ public class NotificationsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.IsAdmin()) return Forbid();
+        if (!User.HasPermission("notifications.manage")) return StatusCode(403);
 
         var log = await _notificationService.GetLogAsync(limit);
         return Ok(log);

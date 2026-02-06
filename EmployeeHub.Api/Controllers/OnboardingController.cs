@@ -36,7 +36,7 @@ public class OnboardingController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.IsAdmin()) return Forbid();
+        if (!User.HasPermission("onboarding.manage")) return StatusCode(403);
 
         var item = await _onboardingService.CreateItemAsync(request, userId.Value);
         return CreatedAtAction(nameof(GetItems), null, new OnboardingItemResponse
@@ -52,7 +52,7 @@ public class OnboardingController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.IsAdmin()) return Forbid();
+        if (!User.HasPermission("onboarding.manage")) return StatusCode(403);
 
         var item = await _onboardingService.UpdateItemAsync(id, request, userId.Value);
         if (item == null) return NotFound();
@@ -70,7 +70,7 @@ public class OnboardingController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.IsAdmin()) return Forbid();
+        if (!User.HasPermission("onboarding.manage")) return StatusCode(403);
 
         var success = await _onboardingService.DeleteItemAsync(id, userId.Value);
         if (!success) return NotFound();

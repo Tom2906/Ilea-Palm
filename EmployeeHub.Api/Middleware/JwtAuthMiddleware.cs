@@ -64,13 +64,30 @@ public static class ClaimsPrincipalExtensions
         return claim != null && Guid.TryParse(claim.Value, out var id) ? id : null;
     }
 
-    public static string? GetUserRole(this ClaimsPrincipal principal)
+    public static Guid? GetEmployeeId(this ClaimsPrincipal principal)
     {
-        return principal.FindFirst(ClaimTypes.Role)?.Value;
+        var claim = principal.FindFirst("EmployeeId");
+        return claim != null && Guid.TryParse(claim.Value, out var id) ? id : null;
     }
 
-    public static bool IsAdmin(this ClaimsPrincipal principal)
+    public static bool HasPermission(this ClaimsPrincipal principal, string permission)
     {
-        return principal.GetUserRole() == "admin";
+        return principal.FindAll("Permission").Any(c => c.Value == permission);
+    }
+
+    public static string GetDataScope(this ClaimsPrincipal principal)
+    {
+        return principal.FindFirst("DataScope")?.Value ?? "own";
+    }
+
+    public static string GetRoleName(this ClaimsPrincipal principal)
+    {
+        return principal.FindFirst("RoleName")?.Value ?? "Staff";
+    }
+
+    public static Guid? GetRoleId(this ClaimsPrincipal principal)
+    {
+        var claim = principal.FindFirst("RoleId");
+        return claim != null && Guid.TryParse(claim.Value, out var id) ? id : null;
     }
 }

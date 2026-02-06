@@ -19,6 +19,10 @@ public class CompanySettings
     public string[] DefaultHiddenRoles { get; set; } = Array.Empty<string>();
     public string[] DefaultHiddenEmployeeStatuses { get; set; } = Array.Empty<string>();
 
+    // Rota-specific filters
+    public string[] DefaultHiddenRotaRoles { get; set; } = Array.Empty<string>();
+    public string[] DefaultHiddenRotaEmployeeStatuses { get; set; } = Array.Empty<string>();
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
