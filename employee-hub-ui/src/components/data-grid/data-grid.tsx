@@ -13,11 +13,14 @@ export function DataGrid<TRow, TCol>({
   onCellClick,
   getCellClassName,
   legend = [],
+  toolbar,
+  navigation,
   rowLabelWidth = 200,
   cellWidth = 48,
   cellHeight = 40,
   loading = false,
   emptyMessage = "No data found",
+  headerGroups,
   summaryColumns = [],
 }: DataGridProps<TRow, TCol>) {
   if (loading) {
@@ -35,10 +38,14 @@ export function DataGrid<TRow, TCol>({
 
   return (
     <div className="h-full w-full flex flex-col gap-4">
-      {/* Legend */}
-      {legend.length > 0 && (
-        <div className="shrink-0">
-          <DataGridLegend items={legend} />
+      {/* Navigation & Toolbar */}
+      {(legend.length > 0 || toolbar || navigation) && (
+        <div className="flex items-center justify-between gap-2 shrink-0">
+          <div>{navigation}</div>
+          <div className="flex items-center gap-1.5">
+            {legend.length > 0 && <DataGridLegend items={legend} />}
+            {toolbar}
+          </div>
         </div>
       )}
 
@@ -55,34 +62,87 @@ export function DataGrid<TRow, TCol>({
           >
             <table className="text-sm border-collapse" style={{ tableLayout: "fixed" }}>
               <thead className="sticky top-0 z-20">
-                <tr className="border-b bg-gray-50">
-                  <th
-                    className="sticky left-0 z-30 bg-gray-50 p-2 text-left font-semibold text-muted-foreground text-sm border-r"
-                    style={{ width: rowLabelWidth, minWidth: rowLabelWidth }}
-                  >
-                    {rowLabelHeader}
-                  </th>
-                  {columns.map((col) => (
+                {headerGroups && headerGroups.length > 0 ? (
+                  <>
+                    <tr className="border-b bg-gray-50">
+                      <th
+                        className="sticky left-0 z-30 bg-gray-50 p-2 text-left font-semibold text-muted-foreground text-sm border-r"
+                        style={{ width: rowLabelWidth, minWidth: rowLabelWidth }}
+                      >
+                        {rowLabelHeader}
+                      </th>
+                      {headerGroups.map((group, idx) => (
+                        <th
+                          key={idx}
+                          colSpan={group.span}
+                          className={`p-1 text-center font-semibold text-xs ${group.className || ""}`}
+                        >
+                          {group.label}
+                        </th>
+                      ))}
+                      {summaryColumns.length > 0 && (
+                        <th colSpan={summaryColumns.length} className="bg-gray-50" />
+                      )}
+                    </tr>
+                    {columns.some((col) => col.header != null) && (
+                      <tr className="border-b bg-gray-50">
+                        <th
+                          className="sticky left-0 z-30 bg-gray-50 border-r"
+                          style={{ width: rowLabelWidth, minWidth: rowLabelWidth }}
+                        />
+                        {columns.map((col) => (
+                          <th
+                            key={col.key}
+                            className={`p-1 text-center font-semibold text-muted-foreground text-xs ${col.headerClassName || ""}`}
+                            style={{ width: cellWidth, minWidth: cellWidth }}
+                          >
+                            <div className="overflow-hidden text-ellipsis">
+                              {col.header}
+                            </div>
+                          </th>
+                        ))}
+                        {summaryColumns.map((sumCol) => (
+                          <th
+                            key={sumCol.key}
+                            className={`p-1 text-center font-semibold text-muted-foreground text-xs ${sumCol.className || ""}`}
+                            style={{ width: sumCol.width || 60, minWidth: sumCol.width || 60 }}
+                          >
+                            {sumCol.header}
+                          </th>
+                        ))}
+                      </tr>
+                    )}
+                  </>
+                ) : (
+                  <tr className="border-b bg-gray-50">
                     <th
-                      key={col.key}
-                      className={`p-1 text-center font-semibold text-muted-foreground text-xs ${col.headerClassName || ""}`}
-                      style={{ width: cellWidth, minWidth: cellWidth }}
+                      className="sticky left-0 z-30 bg-gray-50 p-2 text-left font-semibold text-muted-foreground text-sm border-r"
+                      style={{ width: rowLabelWidth, minWidth: rowLabelWidth }}
                     >
-                      <div className="overflow-hidden text-ellipsis">
-                        {col.header}
-                      </div>
+                      {rowLabelHeader}
                     </th>
-                  ))}
-                  {summaryColumns.map((sumCol) => (
-                    <th
-                      key={sumCol.key}
-                      className={`p-1 text-center font-semibold text-muted-foreground text-xs ${sumCol.className || ""}`}
-                      style={{ width: sumCol.width || 60, minWidth: sumCol.width || 60 }}
-                    >
-                      {sumCol.header}
-                    </th>
-                  ))}
-                </tr>
+                    {columns.map((col) => (
+                      <th
+                        key={col.key}
+                        className={`p-1 text-center font-semibold text-muted-foreground text-xs ${col.headerClassName || ""}`}
+                        style={{ width: cellWidth, minWidth: cellWidth }}
+                      >
+                        <div className="overflow-hidden text-ellipsis">
+                          {col.header}
+                        </div>
+                      </th>
+                    ))}
+                    {summaryColumns.map((sumCol) => (
+                      <th
+                        key={sumCol.key}
+                        className={`p-1 text-center font-semibold text-muted-foreground text-xs ${sumCol.className || ""}`}
+                        style={{ width: sumCol.width || 60, minWidth: sumCol.width || 60 }}
+                      >
+                        {sumCol.header}
+                      </th>
+                    ))}
+                  </tr>
+                )}
               </thead>
               <tbody>
                 {rows.map((row) => (

@@ -1,11 +1,10 @@
-import { useState } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import type { UserListResponse, RoleResponse, Employee } from "@/lib/types"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -22,7 +21,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { Plus, Search, KeyRound } from "lucide-react"
+import { FilterBar } from "@/components/filter-bar"
+import { ListPage } from "@/components/list-page"
+import { ListRow } from "@/components/list-row"
+import { Plus, KeyRound } from "lucide-react"
 
 interface CreateForm {
   email: string
@@ -46,6 +48,7 @@ export default function UsersPage() {
   const queryClient = useQueryClient()
   const { user: currentUser } = useAuth()
   const [search, setSearch] = useState("")
+  const [hidden, setHidden] = useState<Set<string>>(new Set())
   const [createOpen, setCreateOpen] = useState(false)
   const [editUser, setEditUser] = useState<UserListResponse | null>(null)
   const [resetUser, setResetUser] = useState<UserListResponse | null>(null)
@@ -72,6 +75,50 @@ export default function UsersPage() {
     queryKey: ["employees"],
     queryFn: () => api.get<Employee[]>("/employees"),
   })
+
+  const toggle = useCallback((id: string) => {
+    setHidden((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }, [])
+
+  const toggleAll = useCallback((ids: string[], hide: boolean) => {
+    setHidden((prev) => {
+      const next = new Set(prev)
+      ids.forEach((id) => (hide ? next.add(id) : next.delete(id)))
+      return next
+    })
+  }, [])
+
+  const roleNames = useMemo(() => {
+    if (!users) return []
+    return [...new Set(users.map((u) => u.roleName))].sort()
+  }, [users])
+
+  const filterGroups = useMemo(() => [
+    { label: "Role", items: roleNames.map((r) => ({ id: `role:${r}`, label: r })) },
+    { label: "Status", items: [
+      { id: "status:Active", label: "Active" },
+      { id: "status:Inactive", label: "Inactive" },
+    ]},
+  ], [roleNames])
+
+  const filtered = useMemo(() => {
+    if (!users) return []
+    return users.filter((u) => {
+      if (hidden.has(`role:${u.roleName}`)) return false
+      const status = u.active ? "Active" : "Inactive"
+      if (hidden.has(`status:${status}`)) return false
+      const term = search.toLowerCase()
+      return (
+        u.displayName.toLowerCase().includes(term) ||
+        u.email.toLowerCase().includes(term) ||
+        u.roleName.toLowerCase().includes(term)
+      )
+    })
+  }, [users, hidden, search])
 
   const createUser = useMutation({
     mutationFn: (data: CreateForm) => {
@@ -125,87 +172,71 @@ export default function UsersPage() {
     })
   }
 
-  const filtered = users?.filter((u) => {
-    const term = search.toLowerCase()
-    return (
-      u.displayName.toLowerCase().includes(term) ||
-      u.email.toLowerCase().includes(term) ||
-      u.roleName.toLowerCase().includes(term)
-    )
-  })
-
   const isSelf = (id: string) => id === currentUser?.id
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search users..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+    <ListPage
+      loading={isLoading}
+      itemCount={filtered.length}
+      emptyMessage="No users found."
+      searchPlaceholder="Search..."
+      searchValue={search}
+      onSearchChange={setSearch}
+      toolbar={
+        <>
+          <FilterBar
+            filters={filterGroups}
+            hidden={hidden}
+            onToggle={toggle}
+            onToggleAll={toggleAll}
+            onClear={() => setHidden(new Set())}
           />
-        </div>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
-          <Plus className="h-4 w-4 mr-1" />
-          Add User
-        </Button>
-      </div>
-
-      {isLoading ? (
-        <div className="space-y-2">
-          {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="h-16 w-full rounded-lg" />
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {filtered?.map((u) => (
-            <div
-              key={u.id}
-              className="flex items-center justify-between p-4 rounded-lg border bg-card cursor-pointer hover:bg-accent/50 transition-colors"
-              onClick={() => !isSelf(u.id) && openEdit(u)}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{u.displayName}</span>
-                  <Badge variant="outline" className="text-xs">{u.roleName}</Badge>
-                  {!u.active && (
-                    <Badge variant="secondary" className="text-xs">Inactive</Badge>
-                  )}
-                  {isSelf(u.id) && (
-                    <Badge variant="secondary" className="text-xs">You</Badge>
-                  )}
-                </div>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                  <span>{u.email}</span>
-                  {u.employeeName && <span>Linked: {u.employeeName}</span>}
-                  {u.lastLogin && (
-                    <span>
-                      Last login: {new Date(u.lastLogin).toLocaleDateString()}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setResetUser(u)
-                  }}
-                  title="Reset password"
-                >
-                  <KeyRound className="h-4 w-4" />
-                </Button>
-              </div>
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" />
+            Add User
+          </Button>
+        </>
+      }
+    >
+      {filtered.map((u) => (
+        <ListRow
+          key={u.id}
+          onClick={!isSelf(u.id) ? () => openEdit(u) : undefined}
+        >
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">{u.displayName}</span>
+              <Badge variant="outline" className="text-xs">{u.roleName}</Badge>
+              {!u.active && (
+                <Badge variant="secondary" className="text-xs">Inactive</Badge>
+              )}
+              {isSelf(u.id) && (
+                <Badge variant="secondary" className="text-xs">You</Badge>
+              )}
             </div>
-          ))}
-        </div>
-      )}
+            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+              <span>{u.email}</span>
+              {u.employeeName && <span>Linked: {u.employeeName}</span>}
+              {u.lastLogin && (
+                <span>
+                  Last login: {new Date(u.lastLogin).toLocaleDateString()}
+                </span>
+              )}
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation()
+              setResetUser(u)
+            }}
+            title="Reset password"
+          >
+            <KeyRound className="h-4 w-4" />
+          </Button>
+        </ListRow>
+      ))}
 
       {/* Create User Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -400,6 +431,6 @@ export default function UsersPage() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </ListPage>
   )
 }

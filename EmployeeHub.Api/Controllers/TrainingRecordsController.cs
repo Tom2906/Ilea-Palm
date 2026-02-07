@@ -46,9 +46,16 @@ public class TrainingRecordsController : ControllerBase
     public async Task<IActionResult> GetTrainingStatus([FromQuery] string? category = null)
     {
         if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("training_matrix.view")) return StatusCode(403);
 
-        var status = await _recordService.GetTrainingStatusAsync(category);
+        Guid? employeeFilter = null;
+        if (!User.HasPermission("training_matrix.view"))
+        {
+            var myEmpId = User.GetEmployeeId();
+            if (myEmpId == null) return StatusCode(403);
+            employeeFilter = myEmpId;
+        }
+
+        var status = await _recordService.GetTrainingStatusAsync(category, employeeFilter);
         return Ok(status);
     }
 

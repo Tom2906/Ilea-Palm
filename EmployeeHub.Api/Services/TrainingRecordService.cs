@@ -118,17 +118,24 @@ public class TrainingRecordService : ITrainingRecordService
         };
     }
 
-    public async Task<List<TrainingStatusResponse>> GetTrainingStatusAsync(string? category = null)
+    public async Task<List<TrainingStatusResponse>> GetTrainingStatusAsync(string? category = null, Guid? employeeId = null)
     {
         await using var conn = await _db.GetConnectionAsync();
         var sql = "SELECT employee_id, first_name, last_name, email, department, course_id, course_name, category, validity_months, training_record_id, completion_date, expiry_date, status, days_until_expiry FROM training_status";
+        var conditions = new List<string>();
         if (!string.IsNullOrEmpty(category))
-            sql += " WHERE category = @category";
+            conditions.Add("category = @category");
+        if (employeeId.HasValue)
+            conditions.Add("employee_id = @employeeId");
+        if (conditions.Count > 0)
+            sql += " WHERE " + string.Join(" AND ", conditions);
         sql += " ORDER BY last_name, first_name, course_name";
 
         await using var cmd = new NpgsqlCommand(sql, conn);
         if (!string.IsNullOrEmpty(category))
             cmd.Parameters.AddWithValue("category", category);
+        if (employeeId.HasValue)
+            cmd.Parameters.AddWithValue("employeeId", employeeId.Value);
 
         return await ReadStatusList(cmd);
     }

@@ -2,10 +2,8 @@ import { useState, useMemo, useCallback, useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import type { SupervisionStatus, CompanySettings } from "@/lib/types"
-import { Button } from "@/components/ui/button"
-import { FilterDropdown } from "@/components/filter-dropdown"
+import { FilterBar } from "@/components/filter-bar"
 import { CalendarHeatmapV2 } from "@/components/supervision/calendar-heatmap-v2"
-import { X } from "lucide-react"
 
 const allStatuses = ["OK", "Due Soon", "Overdue", "Never"] as const
 
@@ -102,48 +100,26 @@ export default function SupervisionMatrixPage() {
     })
   }, [statuses, hidden])
 
-  return (
-    <div className="h-full flex flex-col gap-4">
-      {/* Filters */}
-      <div className="flex items-center justify-end gap-1.5">
-          <FilterDropdown
-            label="Status"
-            items={statusItems}
-            hidden={hidden}
-            onToggle={toggle}
-            onToggleAll={toggleAll}
-          />
-          <FilterDropdown
-            label="Role"
-            items={roleItems}
-            hidden={hidden}
-            onToggle={toggle}
-            onToggleAll={toggleAll}
-          />
-          <FilterDropdown
-            label="Employee Status"
-            items={employeeStatusItems}
-            hidden={hidden}
-            onToggle={toggle}
-            onToggleAll={toggleAll}
-          />
-        {hidden.size > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2 text-xs text-muted-foreground"
-            onClick={() => setHidden(new Set())}
-          >
-            <X className="h-3 w-3" />
-            Clear
-          </Button>
-        )}
-      </div>
+  const filterGroups = useMemo(() => [
+    { label: "Status", items: statusItems },
+    { label: "Role", items: roleItems },
+    { label: "Employee Status", items: employeeStatusItems },
+  ], [statusItems, roleItems, employeeStatusItems])
 
-      {/* Heatmap */}
-      <div className="flex-1 min-h-0">
-        <CalendarHeatmapV2 filteredStatuses={filteredStatuses} />
-      </div>
+  return (
+    <div className="h-full flex flex-col">
+      <CalendarHeatmapV2
+        filteredStatuses={filteredStatuses}
+        toolbar={
+          <FilterBar
+            filters={filterGroups}
+            hidden={hidden}
+            onToggle={toggle}
+            onToggleAll={toggleAll}
+            onClear={() => setHidden(new Set())}
+          />
+        }
+      />
     </div>
   )
 }

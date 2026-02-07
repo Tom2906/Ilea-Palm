@@ -7,6 +7,7 @@ import type { LeaveRequest } from "@/lib/types"
 import { LeaveBalanceCard } from "./leave-balance-card"
 import { LeaveStatusBadge } from "./leave-status-badge"
 import { LeaveRequestModal } from "./leave-request-modal"
+import { ListRow } from "@/components/list-row"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Plus, Check, X } from "lucide-react"
@@ -60,7 +61,7 @@ export function EmployeeLeaveTab({ employeeId, employeeName }: EmployeeLeaveTabP
       ) : (
         <div className="space-y-2">
           {requests.map((req) => (
-            <div key={req.id} className="flex items-center gap-3 rounded-lg border p-3">
+            <ListRow key={req.id}>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">
@@ -97,7 +98,7 @@ export function EmployeeLeaveTab({ employeeId, employeeName }: EmployeeLeaveTabP
                   </Button>
                 </div>
               )}
-            </div>
+            </ListRow>
           ))}
         </div>
       )}

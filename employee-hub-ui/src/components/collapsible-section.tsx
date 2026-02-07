@@ -11,6 +11,8 @@ interface CollapsibleSectionProps {
   count?: number
   countLabel?: string
   defaultOpen?: boolean
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
   children: React.ReactNode
 }
 
@@ -19,6 +21,8 @@ export function CollapsibleSection({
   count,
   countLabel,
   defaultOpen = true,
+  open,
+  onOpenChange,
   children,
 }: CollapsibleSectionProps) {
   const label =
@@ -28,8 +32,13 @@ export function CollapsibleSection({
         : `${count}`
       : undefined
 
+  const collapsibleProps =
+    open !== undefined
+      ? { open, onOpenChange }
+      : { defaultOpen }
+
   return (
-    <Collapsible defaultOpen={defaultOpen}>
+    <Collapsible {...collapsibleProps}>
       <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border bg-muted/40 px-4 py-3 text-left hover:bg-muted/70 transition-colors group">
         <div className="flex items-center gap-2">
           <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-90" />

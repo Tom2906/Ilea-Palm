@@ -5,10 +5,10 @@ import { useAuth } from "@/contexts/auth-context"
 import type { RotaMonth, RotaEmployee, Shift, CompanySettings } from "@/lib/types"
 import type { Column } from "@/components/data-grid/types"
 import { DataGrid } from "@/components/data-grid/data-grid"
-import { FilterDropdown } from "@/components/filter-dropdown"
+import { FilterBar } from "@/components/filter-bar"
 import { ShiftEditorModal } from "@/components/rotas/shift-editor-modal"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, X } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 interface DayCol {
   day: number
@@ -267,59 +267,43 @@ export default function RotasPage() {
     [rota?.shiftTypes],
   )
 
+  const monthNav = (
+    <div className="flex items-center gap-2">
+      <Button variant="outline" size="sm" onClick={goToPreviousMonth}>
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+      <span className="text-sm font-semibold min-w-[140px] text-center">
+        {monthName}
+      </span>
+      <Button variant="outline" size="sm" onClick={goToNextMonth}>
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+      {!isCurrentMonth && (
+        <Button variant="ghost" size="sm" className="text-xs" onClick={goToCurrentMonth}>
+          Today
+        </Button>
+      )}
+    </div>
+  )
+
   return (
     <div className="h-full flex flex-col gap-4">
-      {/* Header row: month selector + filters */}
-      <div className="flex items-center justify-between">
-        {/* Month selector */}
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={goToPreviousMonth}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-semibold min-w-[140px] text-center">
-            {monthName}
-          </span>
-          <Button variant="outline" size="sm" onClick={goToNextMonth}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          {!isCurrentMonth && (
-            <Button variant="ghost" size="sm" className="text-xs" onClick={goToCurrentMonth}>
-              Today
-            </Button>
-          )}
-        </div>
-
-        {/* Filters */}
-        <div className="flex items-center gap-1.5">
-          <FilterDropdown
-            label="Role"
-            items={roleItems}
-            hidden={hidden}
-            onToggle={toggle}
-            onToggleAll={toggleAll}
-          />
-          {hidden.size > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 px-2 text-xs text-muted-foreground"
-              onClick={() => setHidden(new Set())}
-            >
-              <X className="h-3 w-3" />
-              Clear
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Grid */}
-      <div className="flex-1 min-h-0">
-        <DataGrid<RotaEmployee, DayCol>
-          rows={filteredStaff}
-          columns={dayColumns}
-          getRowKey={(row) => row.employeeId}
-          loading={isLoading}
-          legend={legend}
+      <DataGrid<RotaEmployee, DayCol>
+        rows={filteredStaff}
+        columns={dayColumns}
+        getRowKey={(row) => row.employeeId}
+        loading={isLoading}
+        legend={legend}
+        navigation={monthNav}
+        toolbar={
+            <FilterBar
+              filters={[{ label: "Role", items: roleItems }]}
+              hidden={hidden}
+              onToggle={toggle}
+              onToggleAll={toggleAll}
+              onClear={() => setHidden(new Set())}
+            />
+          }
           cellWidth={42}
           cellHeight={38}
           rowLabelWidth={160}
@@ -338,7 +322,6 @@ export default function RotasPage() {
           getCellClassName={getCellClassName}
           summaryColumns={summaryColumns}
         />
-      </div>
 
       {/* Shift editor modal */}
       {rota && (

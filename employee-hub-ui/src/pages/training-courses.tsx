@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import type { TrainingCourse } from "@/lib/types"
@@ -21,8 +21,9 @@ import {
 } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { Skeleton } from "@/components/ui/skeleton"
+import { FilterBar } from "@/components/filter-bar"
 import { ListRow } from "@/components/list-row"
+import { ListPage } from "@/components/list-page"
 import { Plus, Pencil } from "lucide-react"
 
 const categories = ["Online Mandatory", "F2F Mandatory", "Additional"] as const
@@ -42,19 +43,49 @@ const defaultForm = {
 export default function TrainingCoursesPage() {
   const { hasPermission } = useAuth()
   const queryClient = useQueryClient()
-  const [categoryFilter, setCategoryFilter] = useState<string>("all")
+  const [search, setSearch] = useState("")
+  const [hidden, setHidden] = useState<Set<string>>(new Set())
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState(defaultForm)
   const [error, setError] = useState("")
 
   const { data: courses, isLoading } = useQuery({
-    queryKey: ["training-courses", categoryFilter],
-    queryFn: () =>
-      api.get<TrainingCourse[]>(
-        `/training-courses${categoryFilter !== "all" ? `?category=${encodeURIComponent(categoryFilter)}` : ""}`
-      ),
+    queryKey: ["training-courses"],
+    queryFn: () => api.get<TrainingCourse[]>("/training-courses"),
   })
+
+  const toggle = useCallback((id: string) => {
+    setHidden((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }, [])
+
+  const toggleAll = useCallback((ids: string[], hide: boolean) => {
+    setHidden((prev) => {
+      const next = new Set(prev)
+      ids.forEach((id) => (hide ? next.add(id) : next.delete(id)))
+      return next
+    })
+  }, [])
+
+  const filterGroups = useMemo(() => [
+    { label: "Category", items: categories.map((c) => ({ id: `cat:${c}`, label: c })) },
+  ], [])
+
+  const filtered = useMemo(() => {
+    if (!courses) return []
+    return courses.filter((c) => {
+      if (hidden.has(`cat:${c.category}`)) return false
+      const term = search.toLowerCase()
+      return (
+        c.name.toLowerCase().includes(term) ||
+        (c.description?.toLowerCase().includes(term) ?? false)
+      )
+    })
+  }, [courses, hidden, search])
 
   const createMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) =>
@@ -131,71 +162,61 @@ export default function TrainingCoursesPage() {
   const isPending = createMutation.isPending || updateMutation.isPending
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {categories.map((c) => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {hasPermission("training_courses.edit") && (
-          <Button size="sm" onClick={openCreate}>
-            <Plus className="h-4 w-4 mr-1" />
-            Add Course
-          </Button>
-        )}
-      </div>
-
-      {isLoading ? (
-        <div className="space-y-2">
-          {[...Array(8)].map((_, i) => (
-            <Skeleton key={i} className="h-16 w-full rounded-lg" />
-          ))}
-        </div>
-      ) : courses?.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-8">
-          No courses found.
-        </p>
-      ) : (
-        <div className="space-y-2">
-          {courses?.map((c) => (
-            <ListRow key={c.id}>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{c.name}</p>
-                <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-                  <span>{c.validityMonths ? `${c.validityMonths} month validity` : "No expiry"}</span>
-                  <span>{c.expiryWarningDaysBefore}d warning</span>
-                  <span>{c.notificationDaysBefore}d notification</span>
-                  {(c.notifyEmployee || c.notifyAdmin) && (
-                    <span>
-                      Notify: {[c.notifyEmployee && "Employee", c.notifyAdmin && "Admin"].filter(Boolean).join(", ")}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <Badge variant="outline" className="text-xs shrink-0">
-                {c.category}
-              </Badge>
-              {hasPermission("training_courses.edit") && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="shrink-0"
-                  onClick={() => openEdit(c)}
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </Button>
+    <ListPage
+      loading={isLoading}
+      itemCount={filtered?.length ?? 0}
+      emptyMessage="No courses found."
+      searchPlaceholder="Search..."
+      searchValue={search}
+      onSearchChange={setSearch}
+      toolbar={
+        <>
+          <FilterBar
+            filters={filterGroups}
+            hidden={hidden}
+            onToggle={toggle}
+            onToggleAll={toggleAll}
+            onClear={() => setHidden(new Set())}
+          />
+          {hasPermission("training_courses.edit") && (
+            <Button size="sm" onClick={openCreate}>
+              <Plus className="h-4 w-4 mr-1" />
+              Add Course
+            </Button>
+          )}
+        </>
+      }
+    >
+      {filtered?.map((c) => (
+        <ListRow key={c.id}>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{c.name}</p>
+            <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+              <span>{c.validityMonths ? `${c.validityMonths} month validity` : "No expiry"}</span>
+              <span>{c.expiryWarningDaysBefore}d warning</span>
+              <span>{c.notificationDaysBefore}d notification</span>
+              {(c.notifyEmployee || c.notifyAdmin) && (
+                <span>
+                  Notify: {[c.notifyEmployee && "Employee", c.notifyAdmin && "Admin"].filter(Boolean).join(", ")}
+                </span>
               )}
-            </ListRow>
-          ))}
-        </div>
-      )}
+            </div>
+          </div>
+          <Badge variant="outline" className="text-xs shrink-0">
+            {c.category}
+          </Badge>
+          {hasPermission("training_courses.edit") && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="shrink-0"
+              onClick={() => openEdit(c)}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </ListRow>
+      ))}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg">
@@ -321,6 +342,6 @@ export default function TrainingCoursesPage() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </ListPage>
   )
 }

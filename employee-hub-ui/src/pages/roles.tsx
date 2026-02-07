@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import type { RoleResponse } from "@/lib/types"
+import { ListPage } from "@/components/list-page"
+import { ListRow } from "@/components/list-row"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
@@ -124,6 +125,7 @@ function hasEdit(perms: Record<string, string>, row: PageRow): boolean {
 
 export default function RolesPage() {
   const queryClient = useQueryClient()
+  const [search, setSearch] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingRole, setEditingRole] = useState<RoleResponse | null>(null)
   const [form, setForm] = useState<RoleFormData>(emptyForm)
@@ -140,7 +142,6 @@ export default function RolesPage() {
 
   useEffect(() => {
     if (!dialogOpen) return
-    // Delay to let dialog animation complete and content render
     const timer = setTimeout(checkScroll, 150)
     window.addEventListener("resize", checkScroll)
     return () => {
@@ -202,7 +203,6 @@ export default function RolesPage() {
       if (checked) {
         for (const k of row.accessKeys) perms[k] = "all"
       } else {
-        // Uncheck access removes both access and edit keys
         for (const k of [...row.accessKeys, ...row.editKeys]) delete perms[k]
       }
       return { ...prev, permissions: perms }
@@ -213,7 +213,6 @@ export default function RolesPage() {
     setForm((prev) => {
       const perms = { ...prev.permissions }
       if (checked) {
-        // Checking edit auto-enables access
         for (const k of row.accessKeys) perms[k] = "all"
         for (const k of row.editKeys) perms[k] = "all"
       } else {
@@ -236,66 +235,66 @@ export default function RolesPage() {
 
   const permCount = (perms: Record<string, string>) => Object.keys(perms).length
 
+  const filtered = useMemo(() => {
+    if (!roles) return []
+    const term = search.toLowerCase()
+    if (!term) return roles
+    return roles.filter((r) =>
+      r.name.toLowerCase().includes(term) ||
+      (r.description?.toLowerCase().includes(term) ?? false)
+    )
+  }, [roles, search])
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Roles</h1>
+    <ListPage
+      loading={isLoading}
+      itemCount={filtered.length}
+      emptyMessage="No roles match your search."
+      searchPlaceholder="Search..."
+      searchValue={search}
+      onSearchChange={setSearch}
+      toolbar={
         <Button size="sm" onClick={openCreate}>
           <Plus className="h-4 w-4 mr-1" />
           Add Role
         </Button>
-      </div>
-
-      {isLoading ? (
-        <div className="space-y-2">
-          {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="h-16 w-full rounded-lg" />
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {roles?.map((role) => (
-            <div
-              key={role.id}
-              className="flex items-center justify-between p-4 rounded-lg border bg-card"
-            >
-              <div className="flex items-center gap-3">
-                <Shield className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">{role.name}</span>
-                    {role.isSystem && (
-                      <Badge variant="secondary" className="text-xs">System</Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                    {role.description && <span>{role.description}</span>}
-                    <span>{permCount(role.permissions)} permissions</span>
-                    <span>{role.userCount} user{role.userCount !== 1 ? "s" : ""}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" onClick={() => openEdit(role)}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                {!role.isSystem && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      if (confirm(`Delete role "${role.name}"?`))
-                        deleteRole.mutate(role.id)
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                )}
-              </div>
+      }
+    >
+      {filtered.map((role) => (
+        <ListRow key={role.id}>
+          <Shield className="h-5 w-5 text-muted-foreground shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">{role.name}</span>
+              {role.isSystem && (
+                <Badge variant="secondary" className="text-xs">System</Badge>
+              )}
             </div>
-          ))}
-        </div>
-      )}
+            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+              {role.description && <span>{role.description}</span>}
+              <span>{permCount(role.permissions)} permissions</span>
+              <span>{role.userCount} user{role.userCount !== 1 ? "s" : ""}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            <Button variant="ghost" size="icon" onClick={() => openEdit(role)}>
+              <Pencil className="h-4 w-4" />
+            </Button>
+            {!role.isSystem && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  if (confirm(`Delete role "${role.name}"?`))
+                    deleteRole.mutate(role.id)
+                }}
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            )}
+          </div>
+        </ListRow>
+      ))}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-[90vw] h-[64vh] flex flex-col">
@@ -455,6 +454,6 @@ export default function RolesPage() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </ListPage>
   )
 }

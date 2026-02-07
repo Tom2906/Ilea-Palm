@@ -6,6 +6,7 @@ export type {
   DataGridProps,
   Column,
   FilterConfig,
+  HeaderGroup,
   LegendItem,
   SummaryColumn,
 } from "./types"

@@ -29,11 +29,15 @@ interface TrainingMatrixV2Props {
   courses: TrainingCourse[]
   statusMap: Map<string, TrainingStatus>
   loading?: boolean
+  toolbar?: React.ReactNode
+  navigation?: React.ReactNode
 }
 
 export function TrainingMatrixV2({
   employees,
   courses,
+  toolbar,
+  navigation,
   statusMap,
   loading = false,
 }: TrainingMatrixV2Props) {
@@ -71,6 +75,8 @@ export function TrainingMatrixV2({
       getRowKey={(course) => course.id}
       loading={loading}
       legend={legend}
+      toolbar={toolbar}
+      navigation={navigation}
       cellWidth={120}
       cellHeight={56}
       rowLabelWidth={180}

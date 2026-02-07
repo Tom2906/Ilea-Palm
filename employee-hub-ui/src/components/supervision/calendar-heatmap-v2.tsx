@@ -34,9 +34,11 @@ interface MonthColumn {
 
 interface CalendarHeatmapV2Props {
   filteredStatuses: SupervisionStatus[]
+  toolbar?: React.ReactNode
+  navigation?: React.ReactNode
 }
 
-export function CalendarHeatmapV2({ filteredStatuses }: CalendarHeatmapV2Props) {
+export function CalendarHeatmapV2({ filteredStatuses, toolbar, navigation }: CalendarHeatmapV2Props) {
   const navigate = useNavigate()
   const [selectedEmployee, setSelectedEmployee] = useState<SupervisionStatus | null>(null)
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null)
@@ -240,6 +242,8 @@ export function CalendarHeatmapV2({ filteredStatuses }: CalendarHeatmapV2Props) 
         getRowKey={(emp) => emp.employeeId}
         loading={loadingSupervisions || loadingExceptions}
         legend={legend}
+        toolbar={toolbar}
+        navigation={navigation}
         cellWidth={120}
         cellHeight={56}
         rowLabelWidth={180}

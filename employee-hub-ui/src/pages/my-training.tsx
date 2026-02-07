@@ -1,27 +1,113 @@
-import { useState } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import type { TrainingStatus } from "@/lib/types"
 import { RecordTrainingModal } from "@/components/record-training-modal"
-import { CollapsibleSection } from "@/components/collapsible-section"
 import { TrainingCard } from "@/components/training-card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
+import { FilterBar } from "@/components/filter-bar"
+import { GroupBy } from "@/components/group-by"
+import type { GroupByOption } from "@/components/group-by"
+import { ListPage } from "@/components/list-page"
+import type { ListPageGroup } from "@/components/list-page"
 import { GraduationCap } from "lucide-react"
+
+const categoryOrder = ["Online Mandatory", "F2F Mandatory", "Additional"] as const
+
+const groupByOptions: GroupByOption[] = [
+  { id: "category", label: "Category" },
+  { id: "status", label: "Status" },
+]
 
 export default function MyTrainingPage() {
   const { user } = useAuth()
   const employeeId = user?.employeeId
-  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [search, setSearch] = useState("")
+  const [hidden, setHidden] = useState<Set<string>>(new Set())
   const [recordOpen, setRecordOpen] = useState(false)
+  const [groupBy, setGroupBy] = useState<string | null>("category")
 
   const { data: trainingStatuses, isLoading } = useQuery({
     queryKey: ["training-status"],
     queryFn: () => api.get<TrainingStatus[]>("/training-records/status"),
     enabled: !!employeeId,
   })
+
+  const toggle = useCallback((id: string) => {
+    setHidden((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }, [])
+
+  const toggleAll = useCallback((ids: string[], hide: boolean) => {
+    setHidden((prev) => {
+      const next = new Set(prev)
+      ids.forEach((id) => (hide ? next.add(id) : next.delete(id)))
+      return next
+    })
+  }, [])
+
+  const myTraining = useMemo(() =>
+    trainingStatuses?.filter((s) => s.employeeId === employeeId) ?? [],
+    [trainingStatuses, employeeId],
+  )
+
+  const statuses = useMemo(() => {
+    const unique = [...new Set(myTraining.map((s) => s.status))]
+    return unique.sort()
+  }, [myTraining])
+
+  const filterGroups = useMemo(() => [
+    { label: "Status", items: statuses.map((s) => ({ id: `status:${s}`, label: s })) },
+    { label: "Category", items: categoryOrder.map((c) => ({ id: `cat:${c}`, label: c })) },
+  ], [statuses])
+
+  const filtered = useMemo(() => {
+    return myTraining.filter((s) => {
+      if (hidden.has(`status:${s.status}`)) return false
+      if (hidden.has(`cat:${s.category}`)) return false
+      const term = search.toLowerCase()
+      return s.courseName.toLowerCase().includes(term)
+    })
+  }, [myTraining, hidden, search])
+
+  const groups: ListPageGroup[] | undefined = useMemo(() => {
+    if (!groupBy) return undefined
+
+    if (groupBy === "category") {
+      return categoryOrder.map((cat) => {
+        const items = filtered.filter((s) => s.category === cat)
+        return {
+          key: cat,
+          label: cat,
+          itemCount: items.length,
+          content: items.map((s) => (
+            <TrainingCard key={s.courseId} data={s} />
+          )),
+        }
+      })
+    }
+
+    if (groupBy === "status") {
+      const statusOrder = [...new Set(filtered.map((s) => s.status))].sort()
+      return statusOrder.map((status) => {
+        const items = filtered.filter((s) => s.status === status)
+        return {
+          key: status,
+          label: status,
+          itemCount: items.length,
+          content: items.map((s) => (
+            <TrainingCard key={s.courseId} data={s} />
+          )),
+        }
+      })
+    }
+
+    return undefined
+  }, [groupBy, filtered])
 
   if (!employeeId) {
     return (
@@ -33,88 +119,43 @@ export default function MyTrainingPage() {
     )
   }
 
-  const myTraining = trainingStatuses?.filter((s) => s.employeeId === employeeId) ?? []
-  const filtered = statusFilter === "all"
-    ? myTraining
-    : myTraining.filter((s) => s.status === statusFilter)
-  const onlineMandatory = filtered.filter((s) => s.category === "Online Mandatory")
-  const f2fMandatory = filtered.filter((s) => s.category === "F2F Mandatory")
-  const additional = filtered.filter((s) => s.category === "Additional")
-
-  const statusCounts: Record<string, number> = {
-    all: myTraining.length,
-    Valid: myTraining.filter((s) => s.status === "Valid").length,
-    "Expiring Soon": myTraining.filter((s) => s.status === "Expiring Soon").length,
-    Expired: myTraining.filter((s) => s.status === "Expired").length,
-    "Not Completed": myTraining.filter((s) => s.status === "Not Completed").length,
-    Completed: myTraining.filter((s) => s.status === "Completed").length,
-  }
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex flex-wrap gap-1.5">
-          {(
-            [
-              { key: "all", label: "All" },
-              { key: "Valid", label: "Valid" },
-              { key: "Expiring Soon", label: "Expiring Soon" },
-              { key: "Expired", label: "Expired" },
-              { key: "Not Completed", label: "Not Completed" },
-              { key: "Completed", label: "Completed" },
-            ] as const
-          )
-            .filter(({ key }) => key === "all" || statusCounts[key] > 0)
-            .map(({ key, label }) => (
-              <Badge
-                key={key}
-                variant={statusFilter === key ? "default" : "outline"}
-                className={`cursor-pointer text-xs ${statusFilter === key ? "" : "hover:bg-muted"}`}
-                onClick={() => setStatusFilter(key)}
-              >
-                {label} ({statusCounts[key]})
-              </Badge>
-            ))}
-        </div>
-        <Button variant="outline" size="sm" onClick={() => setRecordOpen(true)}>
-          <GraduationCap className="h-3.5 w-3.5 mr-1" />
-          Record Training
-        </Button>
-      </div>
-
-      {isLoading ? (
-        <Skeleton className="h-48 w-full" />
-      ) : (
-        <>
-          {[
-            { title: "Online Mandatory", items: onlineMandatory },
-            { title: "F2F Mandatory", items: f2fMandatory },
-            { title: "Additional", items: additional },
-          ].map(({ title, items }) =>
-            items.length > 0 ? (
-              <CollapsibleSection key={title} title={title} count={items.length} countLabel={items.length === 1 ? "course" : "courses"}>
-                <div className="space-y-2">
-                  {items.map((s) => (
-                    <TrainingCard key={s.courseId} data={s} />
-                  ))}
-                </div>
-              </CollapsibleSection>
-            ) : null
-          )}
-          {filtered.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              {statusFilter === "all" ? "No training assigned." : "No training records match this filter."}
-            </p>
-          )}
-        </>
-      )}
-
+    <>
+      <ListPage
+        loading={isLoading}
+        groups={groups}
+        itemCount={filtered.length}
+        emptyMessage="No training records match your filters."
+        searchPlaceholder="Search..."
+        searchValue={search}
+        onSearchChange={setSearch}
+        toolbar={
+          <>
+            <GroupBy options={groupByOptions} value={groupBy} onChange={setGroupBy} />
+            <FilterBar
+              filters={filterGroups}
+              hidden={hidden}
+              onToggle={toggle}
+              onToggleAll={toggleAll}
+              onClear={() => setHidden(new Set())}
+            />
+            <Button variant="outline" size="sm" onClick={() => setRecordOpen(true)}>
+              <GraduationCap className="h-3.5 w-3.5 mr-1" />
+              Record Training
+            </Button>
+          </>
+        }
+      >
+        {filtered.map((s) => (
+          <TrainingCard key={s.courseId} data={s} />
+        ))}
+      </ListPage>
       <RecordTrainingModal
         employeeId={employeeId}
         employeeName={user.displayName}
         open={recordOpen}
         onOpenChange={setRecordOpen}
       />
-    </div>
+    </>
   )
 }

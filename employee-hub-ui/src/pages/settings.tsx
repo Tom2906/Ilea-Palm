@@ -10,6 +10,21 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+function SaveBar({ dirty, pending, onReset }: { dirty: boolean; pending: boolean; onReset: () => void }) {
+  return (
+    <div className="flex justify-end gap-2">
+      {dirty && (
+        <Button type="button" variant="outline" onClick={onReset} disabled={pending}>
+          Reset
+        </Button>
+      )}
+      <Button type="submit" disabled={pending || !dirty}>
+        {pending ? "Saving..." : "Save Changes"}
+      </Button>
+    </div>
+  )
+}
+
 export default function SettingsPage() {
   const queryClient = useQueryClient()
   const [error, setError] = useState("")
@@ -39,8 +54,6 @@ export default function SettingsPage() {
   // Rota monthly hours state
   const [rotaYear, setRotaYear] = useState(new Date().getFullYear())
   const [rotaHours, setRotaHours] = useState<Record<number, string>>({})
-  const [rotaSaving, setRotaSaving] = useState(false)
-  const [rotaSuccess, setRotaSuccess] = useState(false)
 
   const { data: monthlyHours } = useQuery({
     queryKey: ["monthly-hours", rotaYear],
@@ -58,31 +71,6 @@ export default function SettingsPage() {
     return existing ? String(existing.contractedHours) : ""
   }
 
-  const saveMonthlyHours = async () => {
-    setRotaSaving(true)
-    setError("")
-    try {
-      const changed = Object.keys(rotaHours).map(Number)
-      for (const m of changed) {
-        const val = rotaHours[m]
-        if (val && !isNaN(parseFloat(val))) {
-          await api.post("/rota/monthly-hours", {
-            year: rotaYear,
-            month: m,
-            contractedHours: parseFloat(val),
-          })
-        }
-      }
-      queryClient.invalidateQueries({ queryKey: ["monthly-hours", rotaYear] })
-      setRotaHours({})
-      setRotaSuccess(true)
-      setTimeout(() => setRotaSuccess(false), 3000)
-    } catch (err: any) {
-      setError(err.message)
-    }
-    setRotaSaving(false)
-  }
-
   const rotaDirty = Object.keys(rotaHours).length > 0
 
   const [form, setForm] = useState<Partial<CompanySettings>>({})
@@ -98,6 +86,8 @@ export default function SettingsPage() {
     defaultSupervisionFrequencyMonths: form.defaultSupervisionFrequencyMonths ?? settings?.defaultSupervisionFrequencyMonths ?? 1,
     supervisionMonthsBack: form.supervisionMonthsBack ?? settings?.supervisionMonthsBack ?? 9,
     supervisionMonthsForward: form.supervisionMonthsForward ?? settings?.supervisionMonthsForward ?? 3,
+    appraisalReviewsBack: form.appraisalReviewsBack ?? settings?.appraisalReviewsBack ?? 2,
+    appraisalReviewsForward: form.appraisalReviewsForward ?? settings?.appraisalReviewsForward ?? 2,
     defaultHiddenRoles: form.defaultHiddenRoles ?? settings?.defaultHiddenRoles ?? [],
     defaultHiddenEmployeeStatuses: form.defaultHiddenEmployeeStatuses ?? settings?.defaultHiddenEmployeeStatuses ?? [],
     defaultHiddenRotaRoles: form.defaultHiddenRotaRoles ?? settings?.defaultHiddenRotaRoles ?? [],
@@ -152,27 +142,56 @@ export default function SettingsPage() {
     },
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-    updateMutation.mutate({
-      companyName: currentForm.companyName,
-      defaultExpiryWarningDays: currentForm.defaultExpiryWarningDays,
-      defaultNotificationDaysBefore: currentForm.defaultNotificationDaysBefore,
-      defaultReminderFrequencyDays: currentForm.defaultReminderFrequencyDays,
-      defaultNotifyEmployee: currentForm.defaultNotifyEmployee,
-      defaultNotifyAdmin: currentForm.defaultNotifyAdmin,
-      defaultSupervisionFrequencyMonths: currentForm.defaultSupervisionFrequencyMonths,
-      supervisionMonthsBack: currentForm.supervisionMonthsBack,
-      supervisionMonthsForward: currentForm.supervisionMonthsForward,
-      defaultHiddenRoles: currentForm.defaultHiddenRoles,
-      defaultHiddenEmployeeStatuses: currentForm.defaultHiddenEmployeeStatuses,
-      defaultHiddenRotaRoles: currentForm.defaultHiddenRotaRoles,
-      defaultHiddenRotaEmployeeStatuses: currentForm.defaultHiddenRotaEmployeeStatuses,
-    })
+    try {
+      // Save monthly hours if changed
+      if (rotaDirty) {
+        const changed = Object.keys(rotaHours).map(Number)
+        for (const m of changed) {
+          const val = rotaHours[m]
+          if (val && !isNaN(parseFloat(val))) {
+            await api.post("/rota/monthly-hours", {
+              year: rotaYear,
+              month: m,
+              contractedHours: parseFloat(val),
+            })
+          }
+        }
+        queryClient.invalidateQueries({ queryKey: ["monthly-hours", rotaYear] })
+        setRotaHours({})
+      }
+      // Save settings if changed
+      if (Object.keys(form).length > 0) {
+        updateMutation.mutate({
+          companyName: currentForm.companyName,
+          defaultExpiryWarningDays: currentForm.defaultExpiryWarningDays,
+          defaultNotificationDaysBefore: currentForm.defaultNotificationDaysBefore,
+          defaultReminderFrequencyDays: currentForm.defaultReminderFrequencyDays,
+          defaultNotifyEmployee: currentForm.defaultNotifyEmployee,
+          defaultNotifyAdmin: currentForm.defaultNotifyAdmin,
+          defaultSupervisionFrequencyMonths: currentForm.defaultSupervisionFrequencyMonths,
+          supervisionMonthsBack: currentForm.supervisionMonthsBack,
+          supervisionMonthsForward: currentForm.supervisionMonthsForward,
+          appraisalReviewsBack: currentForm.appraisalReviewsBack,
+          appraisalReviewsForward: currentForm.appraisalReviewsForward,
+          defaultHiddenRoles: currentForm.defaultHiddenRoles,
+          defaultHiddenEmployeeStatuses: currentForm.defaultHiddenEmployeeStatuses,
+          defaultHiddenRotaRoles: currentForm.defaultHiddenRotaRoles,
+          defaultHiddenRotaEmployeeStatuses: currentForm.defaultHiddenRotaEmployeeStatuses,
+        })
+      } else if (rotaDirty) {
+        // Only hours changed, show success manually
+        setSuccess(true)
+        setTimeout(() => setSuccess(false), 3000)
+      }
+    } catch (err: any) {
+      setError(err.message)
+    }
   }
 
-  const isDirty = Object.keys(form).length > 0
+  const isDirty = Object.keys(form).length > 0 || rotaDirty
 
   if (isLoading) {
     return (
@@ -204,7 +223,7 @@ export default function SettingsPage() {
           <TabsTrigger value="rota">Rota</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="company" className="space-y-6 mt-6">
+        <TabsContent value="company" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Company Information</CardTitle>
@@ -276,9 +295,11 @@ export default function SettingsPage() {
               </FieldGroup>
             </CardContent>
           </Card>
+
+          <SaveBar dirty={isDirty} pending={updateMutation.isPending} onReset={() => setForm({})} />
         </TabsContent>
 
-        <TabsContent value="training" className="space-y-6 mt-6">
+        <TabsContent value="training" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Training Course Defaults</CardTitle>
@@ -353,9 +374,11 @@ export default function SettingsPage() {
               </FieldGroup>
             </CardContent>
           </Card>
+
+          <SaveBar dirty={isDirty} pending={updateMutation.isPending} onReset={() => setForm({})} />
         </TabsContent>
 
-        <TabsContent value="supervision" className="space-y-6 mt-6">
+        <TabsContent value="supervision" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Supervision Defaults</CardTitle>
@@ -420,9 +443,52 @@ export default function SettingsPage() {
               </FieldGroup>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Appraisal Grid</CardTitle>
+              <CardDescription>
+                Configure how many reviews to display
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FieldGroup>
+                <div className="grid grid-cols-2 gap-4 max-w-md">
+                  <Field>
+                    <FieldLabel htmlFor="appraisalBack">Reviews Back</FieldLabel>
+                    <Input
+                      id="appraisalBack"
+                      type="number"
+                      value={currentForm.appraisalReviewsBack}
+                      onChange={(e) => setForm({ ...form, appraisalReviewsBack: parseInt(e.target.value) || 2 })}
+                      disabled={updateMutation.isPending}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Completed reviews to show
+                    </p>
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="appraisalForward">Reviews Forward</FieldLabel>
+                    <Input
+                      id="appraisalForward"
+                      type="number"
+                      value={currentForm.appraisalReviewsForward}
+                      onChange={(e) => setForm({ ...form, appraisalReviewsForward: parseInt(e.target.value) || 2 })}
+                      disabled={updateMutation.isPending}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Upcoming reviews to show
+                    </p>
+                  </Field>
+                </div>
+              </FieldGroup>
+            </CardContent>
+          </Card>
+
+          <SaveBar dirty={isDirty} pending={updateMutation.isPending} onReset={() => setForm({})} />
         </TabsContent>
 
-        <TabsContent value="rota" className="space-y-6 mt-6">
+        <TabsContent value="rota" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Monthly Contracted Hours</CardTitle>
@@ -463,36 +529,11 @@ export default function SettingsPage() {
                         placeholder="—"
                         value={getMonthHours(month)}
                         onChange={(e) => setRotaHours({ ...rotaHours, [month]: e.target.value })}
-                        disabled={rotaSaving}
+                        disabled={updateMutation.isPending}
                       />
                     </div>
                   )
                 })}
-              </div>
-              {rotaSuccess && (
-                <div className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700 mt-4">
-                  Monthly hours saved
-                </div>
-              )}
-              <div className="flex justify-end mt-4">
-                {rotaDirty && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="mr-2"
-                    onClick={() => setRotaHours({})}
-                    disabled={rotaSaving}
-                  >
-                    Reset
-                  </Button>
-                )}
-                <Button
-                  type="button"
-                  onClick={saveMonthlyHours}
-                  disabled={rotaSaving || !rotaDirty}
-                >
-                  {rotaSaving ? "Saving..." : "Save Hours"}
-                </Button>
               </div>
             </CardContent>
           </Card>
@@ -547,24 +588,10 @@ export default function SettingsPage() {
               </FieldGroup>
             </CardContent>
           </Card>
+
+          <SaveBar dirty={isDirty} pending={updateMutation.isPending} onReset={() => { setForm({}); setRotaHours({}) }} />
         </TabsContent>
       </Tabs>
-
-      <div className="flex justify-end gap-2">
-        {isDirty && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setForm({})}
-            disabled={updateMutation.isPending}
-          >
-            Reset
-          </Button>
-        )}
-        <Button type="submit" disabled={updateMutation.isPending || !isDirty}>
-          {updateMutation.isPending ? "Saving..." : "Save Changes"}
-        </Button>
-      </div>
     </form>
   )
 }

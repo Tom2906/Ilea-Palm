@@ -19,6 +19,12 @@ export interface FilterConfig {
   items: { id: string; label: string }[]
 }
 
+export interface HeaderGroup {
+  label: ReactNode
+  span: number
+  className?: string
+}
+
 export interface DataGridProps<TRow, TCol> {
   // Data
   rows: TRow[]
@@ -34,8 +40,10 @@ export interface DataGridProps<TRow, TCol> {
   onCellClick?: (row: TRow, col: Column<TCol>) => void
   getCellClassName?: (row: TRow, col: Column<TCol>) => string
 
-  // Legend
+  // Legend & toolbar
   legend?: LegendItem[]
+  toolbar?: ReactNode
+  navigation?: ReactNode
 
   // Layout
   rowLabelWidth?: number
@@ -45,6 +53,9 @@ export interface DataGridProps<TRow, TCol> {
   // Loading state
   loading?: boolean
   emptyMessage?: string
+
+  // Grouped headers (spans above column headers)
+  headerGroups?: HeaderGroup[]
 
   // Summary columns (after main grid)
   summaryColumns?: SummaryColumn<TRow>[]
