@@ -10,10 +10,12 @@ import {
   FileText,
   Grid3X3,
   Tag,
+  User,
   UserCheck,
   Settings,
   Shield,
   UserCog,
+  LayoutDashboard,
   type LucideIcon,
 } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
@@ -45,19 +47,26 @@ interface NavItem {
   permission?: string
 }
 
-const mainNav: NavItem[] = [
-  { title: "Dashboard", url: "/", icon: Home },
-  { title: "Employees", url: "/employees", icon: Users },
-  { title: "Training Matrix", url: "/training-matrix", icon: Grid3X3 },
-  { title: "Training Courses", url: "/training-courses", icon: BookOpen },
-  { title: "Supervision Matrix", url: "/supervision-matrix", icon: UserCheck },
-  { title: "Appraisals", url: "/appraisals", icon: ClipboardList },
-  { title: "Rotas", url: "/rotas", icon: Calendar },
-  { title: "Leave", url: "/leave", icon: CalendarDays },
+const homeNav: NavItem[] = [
+  { title: "Dashboard", url: "/my-dashboard", icon: Home },
+  { title: "My Training", url: "/my-training", icon: Grid3X3 },
+  { title: "My Rota", url: "/my-rota", icon: Calendar },
+  { title: "My Leave", url: "/my-leave", icon: CalendarDays },
+]
+
+const managementNav: NavItem[] = [
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, permission: "dashboard.view" },
+  { title: "Employees", url: "/employees", icon: Users, permission: "employees.view" },
+  { title: "Training Matrix", url: "/training-matrix", icon: Grid3X3, permission: "training_matrix.view" },
+  { title: "Supervision", url: "/supervision-matrix", icon: UserCheck, permission: "supervisions.view" },
+  { title: "Appraisals", url: "/appraisals", icon: ClipboardList, permission: "appraisals.view" },
+  { title: "Rotas", url: "/rotas", icon: Calendar, permission: "rotas.view" },
+  { title: "Leave", url: "/leave", icon: CalendarDays, permission: "leave.view" },
 ]
 
 const adminNav: NavItem[] = [
-  { title: "Onboarding Items", url: "/onboarding-items", icon: ClipboardCheck, permission: "onboarding.manage" },
+  { title: "Training Courses", url: "/training-courses", icon: BookOpen, permission: "training_courses.view" },
+  { title: "Onboarding Items", url: "/onboarding-items", icon: ClipboardCheck, permission: "onboarding.view" },
   { title: "Employee Statuses", url: "/employee-statuses", icon: Tag, permission: "employee_statuses.manage" },
   { title: "Notifications", url: "/notifications", icon: Bell, permission: "notifications.manage" },
   { title: "Audit Log", url: "/audit-log", icon: FileText, permission: "audit_log.view" },
@@ -77,6 +86,12 @@ export function AppSidebar() {
     .join("")
     .toUpperCase() ?? "?"
 
+  const hasEmployeeId = !!user?.employeeId
+
+  const visibleManagementNav = managementNav.filter(
+    (item) => !item.permission || hasPermission(item.permission),
+  )
+
   const visibleAdminNav = adminNav.filter(
     (item) => !item.permission || hasPermission(item.permission),
   )
@@ -93,29 +108,53 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Main</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {mainNav.map((item) => (
-                <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton
-                    isActive={location.pathname === item.url}
-                    onClick={() => navigate(item.url)}
-                    tooltip={item.title}
-                  >
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {hasEmployeeId && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Home</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {homeNav.map((item) => (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton
+                      isActive={location.pathname === item.url}
+                      onClick={() => navigate(item.url)}
+                      tooltip={item.title}
+                    >
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {visibleManagementNav.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Management</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {visibleManagementNav.map((item) => (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton
+                      isActive={location.pathname === item.url}
+                      onClick={() => navigate(item.url)}
+                      tooltip={item.title}
+                    >
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {visibleAdminNav.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarGroupLabel>Administration</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {visibleAdminNav.map((item) => (

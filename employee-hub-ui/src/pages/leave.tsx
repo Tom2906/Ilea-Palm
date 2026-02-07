@@ -20,7 +20,7 @@ const tabs = [
 type TabKey = (typeof tabs)[number]["key"]
 
 export default function LeavePage() {
-  const { hasPermission, canManageEmployee, user } = useAuth()
+  const { hasPermission, user } = useAuth()
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<TabKey>("pending")
   const [requestOpen, setRequestOpen] = useState(false)
@@ -107,7 +107,7 @@ export default function LeavePage() {
                   </div>
                 )}
               </div>
-              {req.status === "pending" && canManageEmployee(req.employeeId) && (
+              {req.status === "pending" && hasPermission("leave.approve") && (
                 <div className="flex gap-1 shrink-0">
                   <Button
                     variant="ghost"

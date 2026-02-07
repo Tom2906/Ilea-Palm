@@ -1,10 +1,11 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import type { RoleResponse } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogContent,
@@ -13,77 +14,112 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Plus, Pencil, Trash2, Shield } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Plus, Pencil, Trash2, Shield, ChevronLeft, ChevronRight } from "lucide-react"
 
-const PERMISSION_GROUPS: Record<string, { label: string; permissions: { key: string; label: string }[] }> = {
-  employees: {
-    label: "Employees",
-    permissions: [
-      { key: "employees.manage", label: "Manage employees" },
-    ],
-  },
-  training: {
-    label: "Training",
-    permissions: [
-      { key: "training_courses.manage", label: "Manage courses" },
-      { key: "training_records.record", label: "Record training" },
-    ],
-  },
-  supervisions: {
-    label: "Supervisions",
-    permissions: [
-      { key: "supervisions.create", label: "Create supervisions" },
-      { key: "supervisions.manage", label: "Manage supervisions" },
-    ],
-  },
-  leave: {
-    label: "Leave",
-    permissions: [
-      { key: "leave.approve", label: "Approve/reject leave" },
-      { key: "leave.manage_entitlements", label: "Manage entitlements" },
-    ],
-  },
-  other: {
-    label: "Other Features",
-    permissions: [
-      { key: "onboarding.manage", label: "Manage onboarding" },
-      { key: "appraisals.manage", label: "Manage appraisals" },
-      { key: "rotas.edit", label: "Edit rotas" },
-    ],
-  },
-  admin: {
-    label: "Administration",
-    permissions: [
-      { key: "settings.manage", label: "Manage settings" },
-      { key: "notifications.manage", label: "Manage notifications" },
-      { key: "audit_log.view", label: "View audit log" },
-      { key: "users.manage", label: "Manage users & roles" },
-      { key: "employee_statuses.manage", label: "Manage employee statuses" },
-    ],
-  },
+interface PageRow {
+  page: string
+  accessKeys: string[]
+  editKeys: string[]
 }
+
+interface PermissionTab {
+  label: string
+  pages: PageRow[]
+}
+
+const PERMISSION_TABS: PermissionTab[] = [
+  {
+    label: "Training",
+    pages: [
+      {
+        page: "Training Matrix",
+        accessKeys: ["training_matrix.view"],
+        editKeys: ["training_records.record"],
+      },
+      {
+        page: "Training Courses",
+        accessKeys: ["training_courses.view"],
+        editKeys: ["training_courses.add", "training_courses.edit", "training_courses.delete"],
+      },
+    ],
+  },
+  {
+    label: "Reviews",
+    pages: [
+      {
+        page: "Supervisions",
+        accessKeys: ["supervisions.view"],
+        editKeys: ["supervisions.add", "supervisions.edit", "supervisions.delete"],
+      },
+      {
+        page: "Appraisals",
+        accessKeys: ["appraisals.view"],
+        editKeys: ["appraisals.add", "appraisals.edit", "appraisals.delete"],
+      },
+    ],
+  },
+  {
+    label: "Rotas",
+    pages: [
+      {
+        page: "Rotas",
+        accessKeys: ["rotas.view"],
+        editKeys: ["rotas.add", "rotas.edit", "rotas.delete"],
+      },
+    ],
+  },
+  {
+    label: "Leave",
+    pages: [
+      {
+        page: "Leave",
+        accessKeys: ["leave.view"],
+        editKeys: ["leave.approve", "leave.manage_entitlements"],
+      },
+    ],
+  },
+  {
+    label: "Administration",
+    pages: [
+      { page: "Dashboard", accessKeys: ["dashboard.view"], editKeys: [] },
+      {
+        page: "Employees",
+        accessKeys: ["employees.view"],
+        editKeys: ["employees.add", "employees.edit", "employees.delete"],
+      },
+      {
+        page: "Onboarding",
+        accessKeys: ["onboarding.view"],
+        editKeys: ["onboarding.add", "onboarding.edit", "onboarding.delete"],
+      },
+      { page: "Settings", accessKeys: ["settings.manage"], editKeys: [] },
+      { page: "Users & Roles", accessKeys: ["users.manage"], editKeys: [] },
+      { page: "Audit Log", accessKeys: ["audit_log.view"], editKeys: [] },
+      { page: "Notifications", accessKeys: ["notifications.manage"], editKeys: [] },
+      { page: "Employee Statuses", accessKeys: ["employee_statuses.manage"], editKeys: [] },
+    ],
+  },
+]
 
 interface RoleFormData {
   name: string
   description: string
-  dataScope: string
-  permissions: string[]
+  permissions: Record<string, string>
 }
 
 const emptyForm: RoleFormData = {
   name: "",
   description: "",
-  dataScope: "own",
-  permissions: [],
+  permissions: {},
+}
+
+function hasAccess(perms: Record<string, string>, row: PageRow): boolean {
+  return row.accessKeys.every((k) => k in perms)
+}
+
+function hasEdit(perms: Record<string, string>, row: PageRow): boolean {
+  return row.editKeys.length > 0 && row.editKeys.every((k) => k in perms)
 }
 
 export default function RolesPage() {
@@ -91,6 +127,27 @@ export default function RolesPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingRole, setEditingRole] = useState<RoleResponse | null>(null)
   const [form, setForm] = useState<RoleFormData>(emptyForm)
+  const tabsListRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
+  function checkScroll() {
+    const el = tabsListRef.current
+    if (!el) return
+    setCanScrollLeft(el.scrollLeft > 4)
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+  }
+
+  useEffect(() => {
+    if (!dialogOpen) return
+    // Delay to let dialog animation complete and content render
+    const timer = setTimeout(checkScroll, 150)
+    window.addEventListener("resize", checkScroll)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener("resize", checkScroll)
+    }
+  }, [dialogOpen])
 
   const { data: roles, isLoading } = useQuery({
     queryKey: ["roles"],
@@ -125,6 +182,7 @@ export default function RolesPage() {
     setEditingRole(null)
     setForm(emptyForm)
     setDialogOpen(true)
+    requestAnimationFrame(checkScroll)
   }
 
   function openEdit(role: RoleResponse) {
@@ -132,19 +190,37 @@ export default function RolesPage() {
     setForm({
       name: role.name,
       description: role.description ?? "",
-      dataScope: role.dataScope,
-      permissions: [...role.permissions],
+      permissions: { ...role.permissions },
     })
     setDialogOpen(true)
+    requestAnimationFrame(checkScroll)
   }
 
-  function togglePermission(key: string) {
-    setForm((prev) => ({
-      ...prev,
-      permissions: prev.permissions.includes(key)
-        ? prev.permissions.filter((p) => p !== key)
-        : [...prev.permissions, key],
-    }))
+  function toggleAccess(row: PageRow, checked: boolean) {
+    setForm((prev) => {
+      const perms = { ...prev.permissions }
+      if (checked) {
+        for (const k of row.accessKeys) perms[k] = "all"
+      } else {
+        // Uncheck access removes both access and edit keys
+        for (const k of [...row.accessKeys, ...row.editKeys]) delete perms[k]
+      }
+      return { ...prev, permissions: perms }
+    })
+  }
+
+  function toggleEdit(row: PageRow, checked: boolean) {
+    setForm((prev) => {
+      const perms = { ...prev.permissions }
+      if (checked) {
+        // Checking edit auto-enables access
+        for (const k of row.accessKeys) perms[k] = "all"
+        for (const k of row.editKeys) perms[k] = "all"
+      } else {
+        for (const k of row.editKeys) delete perms[k]
+      }
+      return { ...prev, permissions: perms }
+    })
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -157,6 +233,8 @@ export default function RolesPage() {
   }
 
   const isPending = createRole.isPending || updateRole.isPending
+
+  const permCount = (perms: Record<string, string>) => Object.keys(perms).length
 
   return (
     <div className="space-y-4">
@@ -192,8 +270,7 @@ export default function RolesPage() {
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
                     {role.description && <span>{role.description}</span>}
-                    <span>Scope: {role.dataScope}</span>
-                    <span>{role.permissions.length} permissions</span>
+                    <span>{permCount(role.permissions)} permissions</span>
                     <span>{role.userCount} user{role.userCount !== 1 ? "s" : ""}</span>
                   </div>
                 </div>
@@ -221,80 +298,149 @@ export default function RolesPage() {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[90vw] h-[64vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>
               {editingRole ? "Edit Role" : "Create Role"}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                required
-              />
+          <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 gap-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Input
+                  id="description"
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                rows={2}
-              />
-            </div>
+            <div className="flex-1 min-h-0">
+              <Label className="mb-2 block">Permissions</Label>
 
-            <div className="space-y-2">
-              <Label>Data Scope</Label>
-              <Select
-                value={form.dataScope}
-                onValueChange={(v) => setForm({ ...form, dataScope: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Employees</SelectItem>
-                  <SelectItem value="reports">Direct Reports Only</SelectItem>
-                  <SelectItem value="own">Own Data Only</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Controls which employees this role can act on for scoped permissions.
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <Label>Permissions</Label>
-              {Object.entries(PERMISSION_GROUPS).map(([groupKey, group]) => (
-                <div key={groupKey} className="space-y-1.5">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    {group.label}
-                  </p>
-                  {group.permissions.map((perm) => (
-                    <label
-                      key={perm.key}
-                      className="flex items-center gap-2 text-sm cursor-pointer"
+              <Tabs defaultValue={PERMISSION_TABS[0].label} className="flex flex-col">
+                <div className="relative">
+                  <TabsList
+                    ref={tabsListRef}
+                    className="w-full justify-start flex-nowrap h-auto gap-1 p-1 overflow-x-auto [&::-webkit-scrollbar]:hidden"
+                    style={{ scrollbarWidth: "none" }}
+                    onScroll={checkScroll}
+                  >
+                    {PERMISSION_TABS.map((tab) => {
+                      const granted = tab.pages.flatMap((p) => [...p.accessKeys, ...p.editKeys])
+                        .filter((k) => k in form.permissions).length
+                      return (
+                        <TabsTrigger key={tab.label} value={tab.label} className="text-xs px-3 py-1.5 shrink-0">
+                          {tab.label}
+                          {granted > 0 && (
+                            <span className="ml-1.5 text-[10px] bg-primary/15 text-primary rounded-full px-1.5">
+                              {granted}
+                            </span>
+                          )}
+                        </TabsTrigger>
+                      )
+                    })}
+                  </TabsList>
+                  {canScrollLeft && (
+                    <button
+                      type="button"
+                      className="absolute left-0 top-0 bottom-0 flex items-center pl-1 pr-2 bg-gradient-to-r from-muted via-muted/60 to-transparent rounded-l-md"
+                      onClick={() => tabsListRef.current?.scrollBy({ left: -120, behavior: "smooth" })}
                     >
-                      <Checkbox
-                        checked={form.permissions.includes(perm.key)}
-                        onCheckedChange={() => togglePermission(perm.key)}
-                      />
-                      <span>{perm.label}</span>
-                      <span className="text-xs text-muted-foreground ml-auto font-mono">
-                        {perm.key}
-                      </span>
-                    </label>
-                  ))}
+                      <ChevronLeft className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                  )}
+                  {canScrollRight && (
+                    <button
+                      type="button"
+                      className="absolute right-0 top-0 bottom-0 flex items-center pr-1 pl-2 bg-gradient-to-l from-muted via-muted/60 to-transparent rounded-r-md"
+                      onClick={() => tabsListRef.current?.scrollBy({ left: 120, behavior: "smooth" })}
+                    >
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                  )}
                 </div>
-              ))}
+
+                {PERMISSION_TABS.map((tab) => (
+                  <TabsContent key={tab.label} value={tab.label} className="mt-3">
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-muted/50">
+                            <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Page</th>
+                            <th className="text-center px-4 py-2.5 font-medium text-muted-foreground w-24">Access</th>
+                            {tab.pages.some((p) => p.editKeys.length > 0) && (
+                              <th className="text-center px-4 py-2.5 font-medium text-muted-foreground w-24">Edit</th>
+                            )}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {tab.pages.map((row) => (
+                            <tr key={row.page} className="border-t">
+                              <td className="px-4 py-2.5">
+                                <span className="text-sm font-medium">{row.page}</span>
+                              </td>
+                              <td className="px-4 py-2.5 text-center">
+                                <Checkbox
+                                  checked={hasAccess(form.permissions, row)}
+                                  onCheckedChange={(checked) => toggleAccess(row, !!checked)}
+                                />
+                              </td>
+                              {tab.pages.some((p) => p.editKeys.length > 0) && (
+                                <td className="px-4 py-2.5 text-center">
+                                  {row.editKeys.length > 0 ? (
+                                    <Checkbox
+                                      checked={hasEdit(form.permissions, row)}
+                                      onCheckedChange={(checked) => toggleEdit(row, !!checked)}
+                                    />
+                                  ) : null}
+                                </td>
+                              )}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => tab.pages.forEach((row) => {
+                          toggleAccess(row, true)
+                          if (row.editKeys.length > 0) toggleEdit(row, true)
+                        })}
+                      >
+                        Grant All
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => tab.pages.forEach((row) => toggleAccess(row, false))}
+                      >
+                        Revoke All
+                      </Button>
+                    </div>
+                  </TabsContent>
+                ))}
+              </Tabs>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-2 pt-2 border-t">
               <Button
                 type="button"
                 variant="outline"

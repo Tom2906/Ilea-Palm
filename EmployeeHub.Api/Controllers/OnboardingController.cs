@@ -36,7 +36,7 @@ public class OnboardingController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.HasPermission("onboarding.manage")) return StatusCode(403);
+        if (!User.HasPermission("onboarding.add")) return StatusCode(403);
 
         var item = await _onboardingService.CreateItemAsync(request, userId.Value);
         return CreatedAtAction(nameof(GetItems), null, new OnboardingItemResponse
@@ -52,7 +52,7 @@ public class OnboardingController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.HasPermission("onboarding.manage")) return StatusCode(403);
+        if (!User.HasPermission("onboarding.edit")) return StatusCode(403);
 
         var item = await _onboardingService.UpdateItemAsync(id, request, userId.Value);
         if (item == null) return NotFound();
@@ -70,7 +70,7 @@ public class OnboardingController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.HasPermission("onboarding.manage")) return StatusCode(403);
+        if (!User.HasPermission("onboarding.delete")) return StatusCode(403);
 
         var success = await _onboardingService.DeleteItemAsync(id, userId.Value);
         if (!success) return NotFound();
@@ -82,6 +82,7 @@ public class OnboardingController : ControllerBase
     public async Task<IActionResult> GetEmployeeRecords(Guid employeeId)
     {
         if (User.GetUserId() == null) return Unauthorized();
+        if (!User.HasPermission("onboarding.view")) return StatusCode(403);
 
         var records = await _onboardingService.GetEmployeeRecordsAsync(employeeId);
         return Ok(records);
@@ -92,6 +93,7 @@ public class OnboardingController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
+        if (!User.HasPermission("onboarding.edit")) return StatusCode(403);
 
         var validStatuses = new[] { "pending", "complete", "not_required" };
         if (!validStatuses.Contains(request.Status))

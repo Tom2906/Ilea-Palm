@@ -20,6 +20,7 @@ public class SupervisionExceptionsController : ControllerBase
     public async Task<IActionResult> GetAll([FromQuery] Guid? employeeId = null, [FromQuery] string? period = null)
     {
         if (User.GetUserId() == null) return Unauthorized();
+        if (!User.HasPermission("supervisions.view")) return StatusCode(403);
 
         var exceptions = await _exceptionService.GetAllAsync(employeeId, period);
         return Ok(exceptions);
@@ -29,6 +30,7 @@ public class SupervisionExceptionsController : ControllerBase
     public async Task<IActionResult> GetByEmployee(Guid employeeId)
     {
         if (User.GetUserId() == null) return Unauthorized();
+        if (!User.HasPermission("supervisions.view")) return StatusCode(403);
 
         var exceptions = await _exceptionService.GetByEmployeeAsync(employeeId);
         return Ok(exceptions);
@@ -38,6 +40,7 @@ public class SupervisionExceptionsController : ControllerBase
     public async Task<IActionResult> GetByPeriod(string period)
     {
         if (User.GetUserId() == null) return Unauthorized();
+        if (!User.HasPermission("supervisions.view")) return StatusCode(403);
 
         var exceptions = await _exceptionService.GetByPeriodAsync(period);
         return Ok(exceptions);
@@ -48,7 +51,7 @@ public class SupervisionExceptionsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.HasPermission("supervisions.manage")) return StatusCode(403);
+        if (!User.HasPermission("supervisions.edit")) return StatusCode(403);
 
         // Validate exception_type
         var validTypes = new[] { "not_required", "annual_leave", "sick_leave" };
@@ -79,7 +82,7 @@ public class SupervisionExceptionsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.HasPermission("supervisions.manage")) return StatusCode(403);
+        if (!User.HasPermission("supervisions.delete")) return StatusCode(403);
 
         var success = await _exceptionService.DeleteAsync(id, userId.Value);
         if (!success) return NotFound();

@@ -21,7 +21,7 @@ public class AuthService : IAuthService
 
     private const string UserQuery = @"
         SELECT u.id, u.email, u.password_hash, u.display_name, u.role_id, u.employee_id, u.active,
-               r.name AS role_name, r.data_scope
+               r.name AS role_name
         FROM users u
         JOIN roles r ON r.id = u.role_id";
 
@@ -64,10 +64,8 @@ public class AuthService : IAuthService
         if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             return null;
 
-        // Load permissions
         user.Permissions = await LoadPermissionsAsync(conn, user.RoleId);
 
-        // Update last_login
         await using var updateCmd = new NpgsqlCommand(
             "UPDATE users SET last_login = NOW() WHERE id = @id", conn);
         updateCmd.Parameters.AddWithValue("id", user.Id);
@@ -87,7 +85,6 @@ public class AuthService : IAuthService
         if (_oidcConfigManager == null || string.IsNullOrEmpty(_azureClientId) || string.IsNullOrEmpty(_azureTenantId))
             return (null, "Microsoft sign-in is not configured");
 
-        // Validate the Microsoft ID token
         var oidcConfig = await _oidcConfigManager.GetConfigurationAsync(CancellationToken.None);
 
         var validationParams = new TokenValidationParameters
@@ -111,7 +108,6 @@ public class AuthService : IAuthService
             return (null, "Microsoft sign-in failed");
         }
 
-        // Extract email from claims (preferred_username → email → ClaimTypes.Email)
         var email = principal.FindFirst("preferred_username")?.Value
             ?? principal.FindFirst("email")?.Value
             ?? principal.FindFirst(ClaimTypes.Email)?.Value;
@@ -119,7 +115,6 @@ public class AuthService : IAuthService
         if (string.IsNullOrEmpty(email))
             return (null, "Microsoft sign-in failed");
 
-        // Look up user by email
         await using var conn = await _db.GetConnectionAsync();
         await using var cmd = new NpgsqlCommand(
             UserQuery + " WHERE u.email = @email", conn);
@@ -135,10 +130,8 @@ public class AuthService : IAuthService
         if (!user.Active)
             return (null, "Your account is not provisioned. Contact your administrator.");
 
-        // Load permissions
         user.Permissions = await LoadPermissionsAsync(conn, user.RoleId);
 
-        // Update last_login
         await using var updateCmd = new NpgsqlCommand(
             "UPDATE users SET last_login = NOW() WHERE id = @id", conn);
         updateCmd.Parameters.AddWithValue("id", user.Id);
@@ -216,15 +209,15 @@ public class AuthService : IAuthService
             new Claim(ClaimTypes.Email, user.Email),
             new Claim(ClaimTypes.Name, user.DisplayName),
             new Claim("RoleId", user.RoleId.ToString()),
-            new Claim("RoleName", user.RoleName),
-            new Claim("DataScope", user.DataScope)
+            new Claim("RoleName", user.RoleName)
         };
 
         if (user.EmployeeId.HasValue)
             claims.Add(new Claim("EmployeeId", user.EmployeeId.Value.ToString()));
 
-        foreach (var permission in user.Permissions)
-            claims.Add(new Claim("Permission", permission));
+        // Each permission is a claim with prefix "Perm:" and value = scope
+        foreach (var (permission, scope) in user.Permissions)
+            claims.Add(new Claim($"Perm:{permission}", scope));
 
         var token = new JwtSecurityToken(
             issuer: issuer,
@@ -247,21 +240,20 @@ public class AuthService : IAuthService
             RoleId = reader.GetGuid(4),
             EmployeeId = reader.IsDBNull(5) ? null : reader.GetGuid(5),
             Active = reader.GetBoolean(6),
-            RoleName = reader.GetString(7),
-            DataScope = reader.GetString(8)
+            RoleName = reader.GetString(7)
         };
     }
 
-    private static async Task<List<string>> LoadPermissionsAsync(NpgsqlConnection conn, Guid roleId)
+    private static async Task<Dictionary<string, string>> LoadPermissionsAsync(NpgsqlConnection conn, Guid roleId)
     {
         await using var cmd = new NpgsqlCommand(
-            "SELECT permission FROM role_permissions WHERE role_id = @roleId ORDER BY permission", conn);
+            "SELECT permission, scope FROM role_permissions WHERE role_id = @roleId ORDER BY permission", conn);
         cmd.Parameters.AddWithValue("roleId", roleId);
 
-        var permissions = new List<string>();
+        var permissions = new Dictionary<string, string>();
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
-            permissions.Add(reader.GetString(0));
+            permissions[reader.GetString(0)] = reader.GetString(1);
 
         return permissions;
     }
@@ -274,7 +266,6 @@ public class AuthService : IAuthService
             Email = user.Email,
             DisplayName = user.DisplayName,
             RoleName = user.RoleName,
-            DataScope = user.DataScope,
             Permissions = user.Permissions,
             EmployeeId = user.EmployeeId
         };

@@ -25,7 +25,7 @@ import { RecordTrainingModal } from "@/components/record-training-modal"
 import { SupervisionTimeline } from "@/components/supervision/supervision-timeline"
 import { EmployeeAppraisalsTab } from "@/components/appraisals/employee-appraisals-tab"
 import { EmployeeLeaveTab } from "@/components/leave/employee-leave-tab"
-import { ArrowLeft, Settings, Calendar, GraduationCap } from "lucide-react"
+import { ArrowLeft, Settings, GraduationCap } from "lucide-react"
 
 export default function EmployeeDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -38,7 +38,6 @@ export default function EmployeeDetailPage() {
   const [recordTrainingOpen, setRecordTrainingOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState<string>("all")
 
-  // Derive initial tab from URL query param
   const initialTab = useMemo(() => {
     const validTabs = ["overview", "training", "onboarding", "references", "supervision", "appraisals", "leave"]
     const tabParam = searchParams.get("tab")
@@ -145,13 +144,12 @@ export default function EmployeeDetailPage() {
           <p className="text-xs text-muted-foreground mt-0.5">{employee.email}</p>
         </div>
         <div className="ml-auto flex items-center gap-1 shrink-0">
-          <Button variant="ghost" size="icon" className="h-8 w-8" title="Record training" onClick={() => setRecordTrainingOpen(true)}>
-            <GraduationCap className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" title="Calendar">
-            <Calendar className="h-4 w-4" />
-          </Button>
-          {hasPermission("employees.manage") && (
+          {hasPermission("training_records.record") && (
+            <Button variant="ghost" size="icon" className="h-8 w-8" title="Record training" onClick={() => setRecordTrainingOpen(true)}>
+              <GraduationCap className="h-4 w-4" />
+            </Button>
+          )}
+          {hasPermission("employees.edit") && (
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditOpen(true)} title="Edit employee details">
               <Settings className="h-4 w-4" />
             </Button>
@@ -247,7 +245,7 @@ export default function EmployeeDetailPage() {
                 <ListRow key={record.id} className="gap-3">
                   <Checkbox
                     checked={record.status === "complete"}
-                    disabled={!hasPermission("onboarding.manage") || updateOnboarding.isPending}
+                    disabled={!hasPermission("onboarding.edit") || updateOnboarding.isPending}
                     onCheckedChange={(checked) => {
                       updateOnboarding.mutate({ recordId: record.id, status: checked ? "complete" : "pending" })
                     }}

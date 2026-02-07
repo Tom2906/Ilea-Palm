@@ -15,6 +15,5 @@ public class User
 
     // Populated from join — not stored on users table
     public string RoleName { get; set; } = string.Empty;
-    public string DataScope { get; set; } = "own";
-    public List<string> Permissions { get; set; } = new();
+    public Dictionary<string, string> Permissions { get; set; } = new();
 }

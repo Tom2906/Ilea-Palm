@@ -19,9 +19,7 @@ interface AuthContextType {
   loginWithMicrosoft: (() => Promise<void>) | null
   logout: () => void
   hasPermission: (key: string) => boolean
-  canManageEmployee: (employeeId: string) => boolean
-  permissions: string[]
-  dataScope: "all" | "reports" | "own"
+  permissions: Record<string, string>
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -60,24 +58,11 @@ function useAuthState() {
     setUser(null)
   }, [])
 
-  const permissions = user?.permissions ?? []
-  const dataScope = user?.dataScope ?? "own"
-  const directReportIds = user?.directReportIds ?? []
-
-  const permissionSet = useMemo(() => new Set(permissions), [permissions])
+  const permissions = user?.permissions ?? {}
 
   const hasPermission = useCallback(
-    (key: string) => permissionSet.has(key),
-    [permissionSet],
-  )
-
-  const canManageEmployee = useCallback(
-    (employeeId: string) => {
-      if (dataScope === "all") return true
-      if (dataScope === "reports") return directReportIds.includes(employeeId)
-      return user?.employeeId === employeeId
-    },
-    [dataScope, directReportIds, user?.employeeId],
+    (key: string) => key in permissions,
+    [permissions],
   )
 
   return {
@@ -87,9 +72,7 @@ function useAuthState() {
     login,
     logout,
     hasPermission,
-    canManageEmployee,
     permissions,
-    dataScope,
   }
 }
 

@@ -69,9 +69,9 @@ public class EmployeeService : IEmployeeService
         cmd.Parameters.AddWithValue("department", (object?)request.Department ?? DBNull.Value);
         cmd.Parameters.AddWithValue("role", request.Role);
         cmd.Parameters.AddWithValue("startDate", request.StartDate);
-        cmd.Parameters.AddWithValue("statusId", (object?)request.StatusId ?? DBNull.Value);
+        cmd.Parameters.Add(new NpgsqlParameter("statusId", NpgsqlTypes.NpgsqlDbType.Uuid) { Value = (object?)request.StatusId ?? DBNull.Value });
         cmd.Parameters.AddWithValue("notes", (object?)request.Notes ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("reportsTo", (object?)request.ReportsTo ?? DBNull.Value);
+        cmd.Parameters.Add(new NpgsqlParameter("reportsTo", NpgsqlTypes.NpgsqlDbType.Uuid) { Value = (object?)request.ReportsTo ?? DBNull.Value });
         cmd.Parameters.AddWithValue("supervisionFrequency", request.SupervisionFrequency);
 
         var id = (Guid)(await cmd.ExecuteScalarAsync())!;
@@ -112,9 +112,9 @@ public class EmployeeService : IEmployeeService
         cmd.Parameters.AddWithValue("role", (object?)request.Role ?? DBNull.Value);
         cmd.Parameters.AddWithValue("startDate", request.StartDate.HasValue ? request.StartDate.Value : DBNull.Value);
         cmd.Parameters.AddWithValue("active", request.Active.HasValue ? request.Active.Value : DBNull.Value);
-        cmd.Parameters.AddWithValue("statusId", (object?)request.StatusId ?? DBNull.Value);
+        cmd.Parameters.Add(new NpgsqlParameter("statusId", NpgsqlTypes.NpgsqlDbType.Uuid) { Value = (object?)request.StatusId ?? DBNull.Value });
         cmd.Parameters.AddWithValue("notes", (object?)request.Notes ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("reportsTo", (object?)request.ReportsTo ?? DBNull.Value);
+        cmd.Parameters.Add(new NpgsqlParameter("reportsTo", NpgsqlTypes.NpgsqlDbType.Uuid) { Value = (object?)request.ReportsTo ?? DBNull.Value });
         cmd.Parameters.AddWithValue("supervisionFrequency", request.SupervisionFrequency.HasValue ? request.SupervisionFrequency.Value : DBNull.Value);
 
         await cmd.ExecuteNonQueryAsync();

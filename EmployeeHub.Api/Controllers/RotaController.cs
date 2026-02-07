@@ -20,6 +20,7 @@ public class RotaController : ControllerBase
     public async Task<IActionResult> GetMonth([FromQuery] int year, [FromQuery] int month)
     {
         if (User.GetUserId() == null) return Unauthorized();
+        if (!User.HasPermission("rotas.view")) return StatusCode(403);
 
         if (month < 1 || month > 12 || year < 2000 || year > 2100)
             return BadRequest(new { error = "Invalid year or month" });
@@ -52,7 +53,7 @@ public class RotaController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.HasPermission("rotas.edit")) return StatusCode(403);
+        if (!User.HasPermission("rotas.add")) return StatusCode(403);
 
         var shift = await _rotaService.CreateShiftAsync(request, userId.Value);
         if (shift == null) return BadRequest(new { error = "Failed to create shift" });
@@ -100,7 +101,7 @@ public class RotaController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.HasPermission("rotas.edit")) return StatusCode(403);
+        if (!User.HasPermission("rotas.delete")) return StatusCode(403);
 
         var success = await _rotaService.DeleteShiftAsync(id, userId.Value);
         if (!success) return NotFound();

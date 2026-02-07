@@ -44,6 +44,14 @@ export function EmployeeEditModal({
   const [error, setError] = useState("")
   const [form, setForm] = useState(() => formFromEmployee(employee))
 
+  // Reset form whenever modal opens or employee data changes
+  const prevOpenRef = useState({ wasOpen: open })[0]
+  if (open && !prevOpenRef.wasOpen) {
+    setForm(formFromEmployee(employee))
+    setError("")
+  }
+  prevOpenRef.wasOpen = open
+
   const { data: statuses } = useQuery({
     queryKey: ["employee-statuses"],
     queryFn: () => api.get<EmployeeStatus[]>("/employee-statuses"),
@@ -60,15 +68,6 @@ export function EmployeeEditModal({
     },
     onError: (err: Error) => setError(err.message),
   })
-
-  // Reset form when employee changes or modal opens
-  const handleOpenChange = (value: boolean) => {
-    if (value) {
-      setForm(formFromEmployee(employee))
-      setError("")
-    }
-    onOpenChange(value)
-  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -88,7 +87,7 @@ export function EmployeeEditModal({
   const isPending = updateMutation.isPending
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Edit Employee</DialogTitle>

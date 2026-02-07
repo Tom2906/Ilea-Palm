@@ -22,6 +22,7 @@ public class EmployeesController : ControllerBase
     public async Task<IActionResult> GetAll([FromQuery] bool includeInactive = false)
     {
         if (User.GetUserId() == null) return Unauthorized();
+        if (!User.HasPermission("employees.view")) return StatusCode(403);
 
         var employees = await _employeeService.GetAllAsync(includeInactive);
         var response = employees.Select(e => MapToResponse(e));
@@ -32,6 +33,8 @@ public class EmployeesController : ControllerBase
     public async Task<IActionResult> GetById(Guid id)
     {
         if (User.GetUserId() == null) return Unauthorized();
+        if (!User.HasPermission("employees.view") && User.GetEmployeeId() != id)
+            return StatusCode(403);
 
         var employee = await _employeeService.GetByIdAsync(id);
         if (employee == null) return NotFound();
@@ -44,7 +47,7 @@ public class EmployeesController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.HasPermission("employees.manage")) return StatusCode(403);
+        if (!User.HasPermission("employees.add")) return StatusCode(403);
 
         var employee = await _employeeService.CreateAsync(request, userId.Value);
 
@@ -59,7 +62,7 @@ public class EmployeesController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.HasPermission("employees.manage")) return StatusCode(403);
+        if (!User.HasPermission("employees.edit")) return StatusCode(403);
 
         var employee = await _employeeService.UpdateAsync(id, request, userId.Value);
         if (employee == null) return NotFound();
@@ -72,7 +75,7 @@ public class EmployeesController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.HasPermission("employees.manage")) return StatusCode(403);
+        if (!User.HasPermission("employees.delete")) return StatusCode(403);
 
         var success = await _employeeService.SoftDeleteAsync(id, userId.Value);
         if (!success) return NotFound();

@@ -3,19 +3,16 @@ export interface UserInfo {
   email: string
   displayName: string
   roleName: string
-  dataScope: "all" | "reports" | "own"
-  permissions: string[]
+  permissions: Record<string, string>
   employeeId: string | null
-  directReportIds?: string[]
 }
 
 export interface RoleResponse {
   id: string
   name: string
   description: string | null
-  dataScope: "all" | "reports" | "own"
   isSystem: boolean
-  permissions: string[]
+  permissions: Record<string, string>
   userCount: number
   createdAt: string
   updatedAt: string

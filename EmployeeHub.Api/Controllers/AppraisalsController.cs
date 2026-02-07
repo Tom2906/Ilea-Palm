@@ -23,6 +23,7 @@ public class AppraisalsController : ControllerBase
     public async Task<IActionResult> GetAll()
     {
         if (User.GetUserId() == null) return Unauthorized();
+        if (!User.HasPermission("appraisals.view")) return StatusCode(403);
 
         var appraisals = await _appraisalService.GetAllAsync();
         return Ok(appraisals);
@@ -35,6 +36,7 @@ public class AppraisalsController : ControllerBase
     public async Task<IActionResult> GetMatrix()
     {
         if (User.GetUserId() == null) return Unauthorized();
+        if (!User.HasPermission("appraisals.view")) return StatusCode(403);
 
         var matrix = await _appraisalService.GetMatrixAsync();
         return Ok(matrix);
@@ -47,6 +49,7 @@ public class AppraisalsController : ControllerBase
     public async Task<IActionResult> GetSummary()
     {
         if (User.GetUserId() == null) return Unauthorized();
+        if (!User.HasPermission("appraisals.view")) return StatusCode(403);
 
         var summary = await _appraisalService.GetSummaryAsync();
         return Ok(summary);
@@ -59,6 +62,7 @@ public class AppraisalsController : ControllerBase
     public async Task<IActionResult> GetByEmployee(Guid employeeId)
     {
         if (User.GetUserId() == null) return Unauthorized();
+        if (!User.HasPermission("appraisals.view")) return StatusCode(403);
 
         var appraisals = await _appraisalService.GetByEmployeeAsync(employeeId);
         return Ok(appraisals);
@@ -72,7 +76,7 @@ public class AppraisalsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.HasPermission("appraisals.manage")) return StatusCode(403);
+        if (!User.HasPermission("appraisals.add")) return StatusCode(403);
 
         try
         {
@@ -93,7 +97,7 @@ public class AppraisalsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.HasPermission("appraisals.manage")) return StatusCode(403);
+        if (!User.HasPermission("appraisals.add")) return StatusCode(403);
 
         try
         {
@@ -114,7 +118,7 @@ public class AppraisalsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.HasPermission("appraisals.manage")) return StatusCode(403);
+        if (!User.HasPermission("appraisals.edit")) return StatusCode(403);
 
         var appraisal = await _appraisalService.UpdateAsync(id, request, userId.Value);
         if (appraisal == null) return NotFound();
@@ -130,7 +134,7 @@ public class AppraisalsController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.HasPermission("appraisals.manage")) return StatusCode(403);
+        if (!User.HasPermission("appraisals.delete")) return StatusCode(403);
 
         var success = await _appraisalService.DeleteAsync(id, userId.Value);
         if (!success) return NotFound();

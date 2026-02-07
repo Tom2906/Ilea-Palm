@@ -54,7 +54,7 @@ export default function EmployeesPage() {
           >
             {showInactive ? "Showing All" : "Active Only"}
           </Button>
-          {hasPermission("employees.manage") && (
+          {hasPermission("employees.add") && (
             <Button size="sm" onClick={() => navigate("/employees/new")}>
               <Plus className="h-4 w-4 mr-1" />
               Add Employee

@@ -36,7 +36,8 @@ export function LeaveRequestModal({
   employeeId: fixedEmployeeId,
   employeeName: fixedEmployeeName,
 }: LeaveRequestModalProps) {
-  const { user, dataScope } = useAuth()
+  const { user, hasPermission } = useAuth()
+  const canViewAll = hasPermission("leave.view")
   const queryClient = useQueryClient()
 
   const [employeeId, setEmployeeId] = useState("")
@@ -50,7 +51,7 @@ export function LeaveRequestModal({
   const { data: employees } = useQuery({
     queryKey: ["employees"],
     queryFn: () => api.get<Employee[]>("/employees"),
-    enabled: open && dataScope === "all" && !fixedEmployeeId,
+    enabled: open && canViewAll && !fixedEmployeeId,
   })
 
   const activeEmployees = useMemo(
@@ -117,7 +118,7 @@ export function LeaveRequestModal({
     mutation.mutate()
   }
 
-  const showEmployeeSelect = dataScope === "all" && !fixedEmployeeId
+  const showEmployeeSelect = canViewAll && !fixedEmployeeId
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

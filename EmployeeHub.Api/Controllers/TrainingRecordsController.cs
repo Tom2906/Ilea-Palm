@@ -20,6 +20,8 @@ public class TrainingRecordsController : ControllerBase
     public async Task<IActionResult> GetByEmployee(Guid employeeId)
     {
         if (User.GetUserId() == null) return Unauthorized();
+        if (!User.HasPermission("training_matrix.view") && User.GetEmployeeId() != employeeId)
+            return StatusCode(403);
 
         var records = await _recordService.GetByEmployeeAsync(employeeId);
         return Ok(records);
@@ -31,6 +33,11 @@ public class TrainingRecordsController : ControllerBase
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
 
+        // Self-service: users can record their own training
+        var isOwnRecord = User.GetEmployeeId() == request.EmployeeId;
+        if (!User.HasPermission("training_records.record") && !isOwnRecord)
+            return StatusCode(403);
+
         var record = await _recordService.CreateAsync(request, userId.Value);
         return CreatedAtAction(nameof(GetByEmployee), new { employeeId = record.EmployeeId }, record);
     }
@@ -39,6 +46,7 @@ public class TrainingRecordsController : ControllerBase
     public async Task<IActionResult> GetTrainingStatus([FromQuery] string? category = null)
     {
         if (User.GetUserId() == null) return Unauthorized();
+        if (!User.HasPermission("training_matrix.view")) return StatusCode(403);
 
         var status = await _recordService.GetTrainingStatusAsync(category);
         return Ok(status);
@@ -48,6 +56,7 @@ public class TrainingRecordsController : ControllerBase
     public async Task<IActionResult> GetExpiring([FromQuery] int days = 30)
     {
         if (User.GetUserId() == null) return Unauthorized();
+        if (!User.HasPermission("training_matrix.view")) return StatusCode(403);
 
         var expiring = await _recordService.GetExpiringAsync(days);
         return Ok(expiring);

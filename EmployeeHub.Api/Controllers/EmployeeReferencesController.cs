@@ -20,6 +20,8 @@ public class EmployeeReferencesController : ControllerBase
     public async Task<IActionResult> GetByEmployee(Guid employeeId)
     {
         if (User.GetUserId() == null) return Unauthorized();
+        if (!User.HasPermission("employees.view") && User.GetEmployeeId() != employeeId)
+            return StatusCode(403);
 
         var refs = await _refService.GetByEmployeeAsync(employeeId);
         var response = refs.Select(r => MapToResponse(r));
@@ -31,7 +33,7 @@ public class EmployeeReferencesController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.HasPermission("employees.manage")) return StatusCode(403);
+        if (!User.HasPermission("employees.edit")) return StatusCode(403);
 
         var reference = await _refService.CreateAsync(employeeId, request, userId.Value);
         return CreatedAtAction(nameof(GetByEmployee), new { employeeId }, MapToResponse(reference));
@@ -42,7 +44,7 @@ public class EmployeeReferencesController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.HasPermission("employees.manage")) return StatusCode(403);
+        if (!User.HasPermission("employees.edit")) return StatusCode(403);
 
         var reference = await _refService.UpdateAsync(id, request, userId.Value);
         if (reference == null) return NotFound();
@@ -55,7 +57,7 @@ public class EmployeeReferencesController : ControllerBase
     {
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
-        if (!User.HasPermission("employees.manage")) return StatusCode(403);
+        if (!User.HasPermission("employees.edit")) return StatusCode(403);
 
         var success = await _refService.DeleteAsync(id, userId.Value);
         if (!success) return NotFound();

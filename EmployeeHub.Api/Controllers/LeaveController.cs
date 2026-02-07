@@ -2,7 +2,6 @@ using EmployeeHub.Api.DTOs;
 using EmployeeHub.Api.Middleware;
 using EmployeeHub.Api.Services;
 using Microsoft.AspNetCore.Mvc;
-using Npgsql;
 
 namespace EmployeeHub.Api.Controllers;
 
@@ -11,12 +10,10 @@ namespace EmployeeHub.Api.Controllers;
 public class LeaveController : ControllerBase
 {
     private readonly ILeaveService _leaveService;
-    private readonly IDbService _db;
 
-    public LeaveController(ILeaveService leaveService, IDbService db)
+    public LeaveController(ILeaveService leaveService)
     {
         _leaveService = leaveService;
-        _db = db;
     }
 
     [HttpGet("requests")]
@@ -25,37 +22,16 @@ public class LeaveController : ControllerBase
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
 
-        var scope = User.GetDataScope();
-
-        if (scope == "own")
+        // leave.view = see all requests; no leave.view = own only (self-service)
+        var myEmpId = User.GetEmployeeId();
+        if (!User.HasPermission("leave.view"))
         {
-            // Own data only
-            var empId = User.GetEmployeeId();
-            if (empId == null) return Ok(new List<LeaveRequestResponse>());
-            employeeId = empId;
+            if (myEmpId == null) return Ok(new List<LeaveRequestResponse>());
+            var ownRequests = await _leaveService.GetRequestsAsync(myEmpId, status);
+            return Ok(ownRequests);
         }
-        else if (scope == "reports")
-        {
-            // Direct reports + own
-            if (employeeId.HasValue)
-            {
-                if (!await IsInScope(employeeId.Value))
-                    return StatusCode(403);
-            }
-        }
-        // scope == "all" → no filter needed
 
         var requests = await _leaveService.GetRequestsAsync(employeeId, status);
-
-        // Post-filter for "reports" scope when no specific employee requested
-        if (scope == "reports" && !employeeId.HasValue)
-        {
-            var myEmpId = User.GetEmployeeId();
-            var reportIds = await GetDirectReportIds();
-            requests = requests.Where(r =>
-                r.EmployeeId == myEmpId || reportIds.Contains(r.EmployeeId)).ToList();
-        }
-
         return Ok(requests);
     }
 
@@ -65,13 +41,11 @@ public class LeaveController : ControllerBase
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
 
-        // Users can always create leave for themselves; only "all" scope can create for others
-        var scope = User.GetDataScope();
-        if (scope != "all")
+        // Users can always create leave for themselves; need leave.view to create for others
+        var empId = User.GetEmployeeId();
+        if (empId == null || request.EmployeeId != empId)
         {
-            var empId = User.GetEmployeeId();
-            if (empId == null || request.EmployeeId != empId)
-                return StatusCode(403);
+            if (!User.HasPermission("leave.view")) return StatusCode(403);
         }
 
         try
@@ -91,7 +65,7 @@ public class LeaveController : ControllerBase
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
 
-        // Users without leave.approve can only cancel their own
+        // Without leave.approve, users can only cancel their own
         if (!User.HasPermission("leave.approve"))
         {
             if (request.Status != "cancelled")
@@ -102,15 +76,6 @@ public class LeaveController : ControllerBase
 
             var empId = User.GetEmployeeId();
             if (existing.EmployeeId != empId)
-                return StatusCode(403);
-        }
-        else
-        {
-            // Has leave.approve — check scope
-            var existing = await _leaveService.GetRequestByIdAsync(id);
-            if (existing == null) return NotFound();
-
-            if (!await IsInScope(existing.EmployeeId))
                 return StatusCode(403);
         }
 
@@ -132,7 +97,9 @@ public class LeaveController : ControllerBase
         var userId = User.GetUserId();
         if (userId == null) return Unauthorized();
 
-        if (!await IsInScope(employeeId))
+        // Self-service: users can always view their own balance
+        var myEmpId = User.GetEmployeeId();
+        if (myEmpId != employeeId && !User.HasPermission("leave.view"))
             return StatusCode(403);
 
         var balance = await _leaveService.GetBalanceAsync(employeeId, year);
@@ -160,46 +127,5 @@ public class LeaveController : ControllerBase
         var targetYear = year ?? DateTime.UtcNow.Year;
         var entitlements = await _leaveService.GetEntitlementsAsync(targetYear);
         return Ok(entitlements);
-    }
-
-    private async Task<bool> IsInScope(Guid employeeId)
-    {
-        var scope = User.GetDataScope();
-        if (scope == "all") return true;
-        if (scope == "own") return User.GetEmployeeId() == employeeId;
-        if (scope == "reports") return User.GetEmployeeId() == employeeId || await IsManagerOfEmployee(employeeId);
-        return false;
-    }
-
-    private async Task<bool> IsManagerOfEmployee(Guid employeeId)
-    {
-        var myEmpId = User.GetEmployeeId();
-        if (myEmpId == null) return false;
-
-        await using var conn = await _db.GetConnectionAsync();
-        await using var cmd = new NpgsqlCommand(
-            "SELECT 1 FROM employees WHERE id = @empId AND reports_to = @managerId", conn);
-        cmd.Parameters.AddWithValue("empId", employeeId);
-        cmd.Parameters.AddWithValue("managerId", myEmpId.Value);
-
-        return await cmd.ExecuteScalarAsync() != null;
-    }
-
-    private async Task<HashSet<Guid>> GetDirectReportIds()
-    {
-        var myEmpId = User.GetEmployeeId();
-        if (myEmpId == null) return new HashSet<Guid>();
-
-        await using var conn = await _db.GetConnectionAsync();
-        await using var cmd = new NpgsqlCommand(
-            "SELECT id FROM employees WHERE reports_to = @managerId AND active = true", conn);
-        cmd.Parameters.AddWithValue("managerId", myEmpId.Value);
-
-        var ids = new HashSet<Guid>();
-        await using var reader = await cmd.ExecuteReaderAsync();
-        while (await reader.ReadAsync())
-            ids.Add(reader.GetGuid(0));
-
-        return ids;
     }
 }

@@ -70,7 +70,7 @@ export function EmployeeAppraisalsTab({ employeeId }: EmployeeAppraisalsTabProps
         <p className="text-muted-foreground mb-4">
           No appraisal milestones have been generated for this employee yet.
         </p>
-        {hasPermission("appraisals.manage") && (
+        {hasPermission("appraisals.edit") && (
           <Button
             onClick={() => generateMutation.mutate()}
             disabled={generateMutation.isPending}
@@ -104,7 +104,7 @@ export function EmployeeAppraisalsTab({ employeeId }: EmployeeAppraisalsTabProps
             key={milestone.id}
             milestone={milestone}
             onMarkComplete={handleMarkComplete}
-            canManage={hasPermission("appraisals.manage")}
+            canManage={hasPermission("appraisals.edit")}
           />
         ))}
       </div>

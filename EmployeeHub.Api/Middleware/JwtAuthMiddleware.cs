@@ -72,12 +72,12 @@ public static class ClaimsPrincipalExtensions
 
     public static bool HasPermission(this ClaimsPrincipal principal, string permission)
     {
-        return principal.FindAll("Permission").Any(c => c.Value == permission);
+        return principal.FindFirst($"Perm:{permission}") != null;
     }
 
-    public static string GetDataScope(this ClaimsPrincipal principal)
+    public static string GetPermissionScope(this ClaimsPrincipal principal, string permission)
     {
-        return principal.FindFirst("DataScope")?.Value ?? "own";
+        return principal.FindFirst($"Perm:{permission}")?.Value ?? "own";
     }
 
     public static string GetRoleName(this ClaimsPrincipal principal)

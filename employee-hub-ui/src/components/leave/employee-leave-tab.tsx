@@ -17,7 +17,7 @@ interface EmployeeLeaveTabProps {
 }
 
 export function EmployeeLeaveTab({ employeeId, employeeName }: EmployeeLeaveTabProps) {
-  const { hasPermission, canManageEmployee, dataScope } = useAuth()
+  const { user, hasPermission } = useAuth()
   const queryClient = useQueryClient()
   const [requestOpen, setRequestOpen] = useState(false)
   const currentYear = new Date().getFullYear()
@@ -37,7 +37,7 @@ export function EmployeeLeaveTab({ employeeId, employeeName }: EmployeeLeaveTabP
     },
   })
 
-  const canApprove = canManageEmployee(employeeId)
+  const canApprove = hasPermission("leave.approve")
 
   return (
     <div className="space-y-4">
@@ -45,7 +45,7 @@ export function EmployeeLeaveTab({ employeeId, employeeName }: EmployeeLeaveTabP
 
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-medium">Leave Requests</h4>
-        {(dataScope === "all" || employeeId) && (
+        {(hasPermission("leave.view") || user?.employeeId === employeeId) && (
           <Button variant="outline" size="sm" onClick={() => setRequestOpen(true)}>
             <Plus className="h-3.5 w-3.5 mr-1" />
             Request Leave

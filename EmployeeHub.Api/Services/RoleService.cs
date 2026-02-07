@@ -10,22 +10,27 @@ public class RoleService : IRoleService
 
     private static readonly string[] AllPermissions =
     {
-        "employees.manage",
-        "training_courses.manage",
-        "training_records.record",
-        "supervisions.create",
-        "supervisions.manage",
-        "onboarding.manage",
-        "appraisals.manage",
-        "leave.approve",
-        "leave.manage_entitlements",
-        "rotas.edit",
-        "settings.manage",
-        "notifications.manage",
-        "audit_log.view",
-        "users.manage",
-        "employee_statuses.manage"
+        // Dashboard
+        "dashboard.view",
+        // Employees
+        "employees.view", "employees.add", "employees.edit", "employees.delete",
+        // Training
+        "training_courses.view", "training_courses.add", "training_courses.edit", "training_courses.delete",
+        "training_matrix.view", "training_records.record",
+        // Supervisions
+        "supervisions.view", "supervisions.add", "supervisions.edit", "supervisions.delete",
+        // Leave
+        "leave.view", "leave.approve", "leave.manage_entitlements",
+        // Rotas
+        "rotas.view", "rotas.add", "rotas.edit", "rotas.delete",
+        // Appraisals
+        "appraisals.view", "appraisals.add", "appraisals.edit", "appraisals.delete",
+        // Onboarding
+        "onboarding.view", "onboarding.add", "onboarding.edit", "onboarding.delete",
+        // Administration (scope is always "all" — effectively boolean)
+        "settings.manage", "notifications.manage", "audit_log.view", "users.manage", "employee_statuses.manage"
     };
+
 
     public RoleService(IDbService db, IAuditService audit)
     {
@@ -37,7 +42,7 @@ public class RoleService : IRoleService
     {
         await using var conn = await _db.GetConnectionAsync();
         await using var cmd = new NpgsqlCommand(@"
-            SELECT r.id, r.name, r.description, r.data_scope, r.is_system, r.created_at, r.updated_at,
+            SELECT r.id, r.name, r.description, r.is_system, r.created_at, r.updated_at,
                    COUNT(DISTINCT u.id) AS user_count
             FROM roles r
             LEFT JOIN users u ON u.role_id = r.id
@@ -53,16 +58,14 @@ public class RoleService : IRoleService
                 Id = reader.GetGuid(0),
                 Name = reader.GetString(1),
                 Description = reader.IsDBNull(2) ? null : reader.GetString(2),
-                DataScope = reader.GetString(3),
-                IsSystem = reader.GetBoolean(4),
-                CreatedAt = reader.GetDateTime(5),
-                UpdatedAt = reader.GetDateTime(6),
-                UserCount = reader.GetInt32(7)
+                IsSystem = reader.GetBoolean(3),
+                CreatedAt = reader.GetDateTime(4),
+                UpdatedAt = reader.GetDateTime(5),
+                UserCount = reader.GetInt32(6)
             });
         }
         await reader.CloseAsync();
 
-        // Load permissions for each role
         foreach (var role in roles)
             role.Permissions = await LoadPermissionsAsync(conn, role.Id);
 
@@ -73,7 +76,7 @@ public class RoleService : IRoleService
     {
         await using var conn = await _db.GetConnectionAsync();
         await using var cmd = new NpgsqlCommand(@"
-            SELECT r.id, r.name, r.description, r.data_scope, r.is_system, r.created_at, r.updated_at,
+            SELECT r.id, r.name, r.description, r.is_system, r.created_at, r.updated_at,
                    COUNT(DISTINCT u.id) AS user_count
             FROM roles r
             LEFT JOIN users u ON u.role_id = r.id
@@ -90,11 +93,10 @@ public class RoleService : IRoleService
             Id = reader.GetGuid(0),
             Name = reader.GetString(1),
             Description = reader.IsDBNull(2) ? null : reader.GetString(2),
-            DataScope = reader.GetString(3),
-            IsSystem = reader.GetBoolean(4),
-            CreatedAt = reader.GetDateTime(5),
-            UpdatedAt = reader.GetDateTime(6),
-            UserCount = reader.GetInt32(7)
+            IsSystem = reader.GetBoolean(3),
+            CreatedAt = reader.GetDateTime(4),
+            UpdatedAt = reader.GetDateTime(5),
+            UserCount = reader.GetInt32(6)
         };
         await reader.CloseAsync();
 
@@ -108,12 +110,11 @@ public class RoleService : IRoleService
         await using var tx = await conn.BeginTransactionAsync();
 
         await using var cmd = new NpgsqlCommand(@"
-            INSERT INTO roles (name, description, data_scope)
-            VALUES (@name, @desc, @scope)
+            INSERT INTO roles (name, description)
+            VALUES (@name, @desc)
             RETURNING id, created_at, updated_at", conn, tx);
         cmd.Parameters.AddWithValue("name", request.Name);
         cmd.Parameters.AddWithValue("desc", (object?)request.Description ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("scope", request.DataScope);
 
         await using var reader = await cmd.ExecuteReaderAsync();
         await reader.ReadAsync();
@@ -122,7 +123,6 @@ public class RoleService : IRoleService
         var updatedAt = reader.GetDateTime(2);
         await reader.CloseAsync();
 
-        // Insert permissions
         await InsertPermissionsAsync(conn, tx, roleId, request.Permissions);
 
         await tx.CommitAsync();
@@ -134,7 +134,6 @@ public class RoleService : IRoleService
             Id = roleId,
             Name = request.Name,
             Description = request.Description,
-            DataScope = request.DataScope,
             IsSystem = false,
             Permissions = request.Permissions,
             UserCount = 0,
@@ -147,7 +146,6 @@ public class RoleService : IRoleService
     {
         await using var conn = await _db.GetConnectionAsync();
 
-        // Check role exists
         await using var checkCmd = new NpgsqlCommand("SELECT is_system FROM roles WHERE id = @id", conn);
         checkCmd.Parameters.AddWithValue("id", id);
         var isSystemObj = await checkCmd.ExecuteScalarAsync();
@@ -156,12 +154,11 @@ public class RoleService : IRoleService
         await using var tx = await conn.BeginTransactionAsync();
 
         await using var cmd = new NpgsqlCommand(@"
-            UPDATE roles SET name = @name, description = @desc, data_scope = @scope, updated_at = NOW()
+            UPDATE roles SET name = @name, description = @desc, updated_at = NOW()
             WHERE id = @id", conn, tx);
         cmd.Parameters.AddWithValue("id", id);
         cmd.Parameters.AddWithValue("name", request.Name);
         cmd.Parameters.AddWithValue("desc", (object?)request.Description ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("scope", request.DataScope);
         await cmd.ExecuteNonQueryAsync();
 
         // Replace permissions
@@ -182,7 +179,6 @@ public class RoleService : IRoleService
     {
         await using var conn = await _db.GetConnectionAsync();
 
-        // Check system role — cannot delete
         await using var checkCmd = new NpgsqlCommand(
             "SELECT is_system FROM roles WHERE id = @id", conn);
         checkCmd.Parameters.AddWithValue("id", id);
@@ -190,7 +186,6 @@ public class RoleService : IRoleService
         if (isSystemObj == null) return false;
         if ((bool)isSystemObj) throw new InvalidOperationException("Cannot delete a system role");
 
-        // Check no users assigned
         await using var userCheckCmd = new NpgsqlCommand(
             "SELECT COUNT(*) FROM users WHERE role_id = @id", conn);
         userCheckCmd.Parameters.AddWithValue("id", id);
@@ -212,26 +207,28 @@ public class RoleService : IRoleService
         return Task.FromResult(AllPermissions.ToList());
     }
 
-    private static async Task<List<string>> LoadPermissionsAsync(NpgsqlConnection conn, Guid roleId)
+    private static async Task<Dictionary<string, string>> LoadPermissionsAsync(NpgsqlConnection conn, Guid roleId)
     {
         await using var cmd = new NpgsqlCommand(
-            "SELECT permission FROM role_permissions WHERE role_id = @roleId ORDER BY permission", conn);
+            "SELECT permission, scope FROM role_permissions WHERE role_id = @roleId ORDER BY permission", conn);
         cmd.Parameters.AddWithValue("roleId", roleId);
 
-        var permissions = new List<string>();
+        var permissions = new Dictionary<string, string>();
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
-            permissions.Add(reader.GetString(0));
+            permissions[reader.GetString(0)] = reader.GetString(1);
 
         return permissions;
     }
 
-    private static async Task InsertPermissionsAsync(NpgsqlConnection conn, NpgsqlTransaction tx, Guid roleId, List<string> permissions)
+    private static async Task InsertPermissionsAsync(NpgsqlConnection conn, NpgsqlTransaction tx, Guid roleId, Dictionary<string, string> permissions)
     {
-        foreach (var perm in permissions.Where(p => AllPermissions.Contains(p)))
+        foreach (var (perm, _) in permissions)
         {
+            if (!AllPermissions.Contains(perm)) continue;
+
             await using var permCmd = new NpgsqlCommand(
-                "INSERT INTO role_permissions (role_id, permission) VALUES (@roleId, @perm) ON CONFLICT DO NOTHING",
+                "INSERT INTO role_permissions (role_id, permission, scope) VALUES (@roleId, @perm, 'all') ON CONFLICT DO NOTHING",
                 conn, tx);
             permCmd.Parameters.AddWithValue("roleId", roleId);
             permCmd.Parameters.AddWithValue("perm", perm);

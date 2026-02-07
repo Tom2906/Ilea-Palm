@@ -144,7 +144,7 @@ export default function TrainingCoursesPage() {
             ))}
           </SelectContent>
         </Select>
-        {hasPermission("training_courses.manage") && (
+        {hasPermission("training_courses.edit") && (
           <Button size="sm" onClick={openCreate}>
             <Plus className="h-4 w-4 mr-1" />
             Add Course
@@ -182,7 +182,7 @@ export default function TrainingCoursesPage() {
               <Badge variant="outline" className="text-xs shrink-0">
                 {c.category}
               </Badge>
-              {hasPermission("training_courses.manage") && (
+              {hasPermission("training_courses.edit") && (
                 <Button
                   variant="ghost"
                   size="sm"

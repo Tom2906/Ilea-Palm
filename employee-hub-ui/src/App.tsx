@@ -5,6 +5,7 @@ import { PublicClientApplication } from "@azure/msal-browser"
 import { AuthProvider } from "@/contexts/auth-context"
 import { msalConfig, msalEnabled } from "@/lib/msal-config"
 import AppLayout from "@/components/app-layout"
+import DefaultRedirect from "@/components/default-redirect"
 import LoginPage from "@/pages/login"
 import DashboardPage from "@/pages/dashboard"
 import EmployeesPage from "@/pages/employees"
@@ -24,6 +25,10 @@ import RotasPage from "@/pages/rotas"
 import LeavePage from "@/pages/leave"
 import RolesPage from "@/pages/roles"
 import UsersPage from "@/pages/users"
+import MyDashboardPage from "@/pages/my-dashboard"
+import MyTrainingPage from "@/pages/my-training"
+import MyRotaPage from "@/pages/my-rota"
+import MyLeavePage from "@/pages/my-leave"
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,7 +49,14 @@ function AppContent() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route element={<AppLayout />}>
-          <Route path="/" element={<DashboardPage />} />
+          <Route path="/" element={<DefaultRedirect />} />
+          {/* Personal pages */}
+          <Route path="/my-dashboard" element={<MyDashboardPage />} />
+          <Route path="/my-training" element={<MyTrainingPage />} />
+          <Route path="/my-rota" element={<MyRotaPage />} />
+          <Route path="/my-leave" element={<MyLeavePage />} />
+          {/* Management pages */}
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/employees" element={<EmployeesPage />} />
           <Route path="/employees/new" element={<EmployeeFormPage />} />
           <Route path="/employees/:id" element={<EmployeeDetailPage />} />
@@ -55,6 +67,7 @@ function AppContent() {
           <Route path="/appraisals" element={<AppraisalsPage />} />
           <Route path="/rotas" element={<RotasPage />} />
           <Route path="/leave" element={<LeavePage />} />
+          {/* Administration pages */}
           <Route path="/onboarding-items" element={<OnboardingItemsPage />} />
           <Route path="/employee-statuses" element={<EmployeeStatusesPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />

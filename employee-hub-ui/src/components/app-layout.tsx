@@ -12,16 +12,26 @@ import {
 import { useLocation } from "react-router-dom"
 
 const pageTitles: Record<string, string> = {
-  "/": "Dashboard",
+  "/dashboard": "Dashboard",
+  "/my-dashboard": "Dashboard",
+  "/my-training": "My Training",
+  "/my-rota": "My Rota",
+  "/my-leave": "My Leave",
   "/employees": "Employees",
   "/employees/new": "Add Employee",
   "/training-courses": "Training Courses",
   "/training-matrix": "Training Matrix",
+  "/supervision-matrix": "Supervision Matrix",
+  "/appraisals": "Appraisals",
+  "/rotas": "Rotas",
+  "/leave": "Leave",
   "/onboarding-items": "Onboarding Items",
   "/employee-statuses": "Employee Statuses",
   "/notifications": "Notifications",
   "/audit-log": "Audit Log",
   "/settings": "Settings",
+  "/roles": "Roles",
+  "/users": "Users",
   "/change-password": "Change Password",
 }
 
