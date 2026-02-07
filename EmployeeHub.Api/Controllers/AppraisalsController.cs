@@ -10,54 +10,25 @@ namespace EmployeeHub.Api.Controllers;
 public class AppraisalsController : ControllerBase
 {
     private readonly IAppraisalService _appraisalService;
+    private readonly ICompanySettingsService _settingsService;
 
-    public AppraisalsController(IAppraisalService appraisalService)
+    public AppraisalsController(IAppraisalService appraisalService, ICompanySettingsService settingsService)
     {
         _appraisalService = appraisalService;
+        _settingsService = settingsService;
     }
 
-    /// <summary>
-    /// Get all appraisal milestones (for matrix view)
-    /// </summary>
-    [HttpGet]
-    public async Task<IActionResult> GetAll()
-    {
-        if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("appraisals.view")) return StatusCode(403);
-
-        var appraisals = await _appraisalService.GetAllAsync();
-        return Ok(appraisals);
-    }
-
-    /// <summary>
-    /// Get appraisal matrix data (employees with their milestones)
-    /// </summary>
     [HttpGet("matrix")]
     public async Task<IActionResult> GetMatrix()
     {
         if (User.GetUserId() == null) return Unauthorized();
         if (!User.HasPermission("appraisals.view")) return StatusCode(403);
 
-        var matrix = await _appraisalService.GetMatrixAsync();
-        return Ok(matrix);
+        var settings = await _settingsService.GetAsync();
+        var rows = await _appraisalService.GetMatrixAsync(settings.AppraisalReviewsBack, settings.AppraisalReviewsForward);
+        return Ok(new { reviewsBack = settings.AppraisalReviewsBack, rows });
     }
 
-    /// <summary>
-    /// Get appraisal summary statistics
-    /// </summary>
-    [HttpGet("summary")]
-    public async Task<IActionResult> GetSummary()
-    {
-        if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("appraisals.view")) return StatusCode(403);
-
-        var summary = await _appraisalService.GetSummaryAsync();
-        return Ok(summary);
-    }
-
-    /// <summary>
-    /// Get appraisal milestones for a specific employee
-    /// </summary>
     [HttpGet("employee/{employeeId:guid}")]
     public async Task<IActionResult> GetByEmployee(Guid employeeId)
     {
@@ -68,9 +39,6 @@ public class AppraisalsController : ControllerBase
         return Ok(appraisals);
     }
 
-    /// <summary>
-    /// Create a new appraisal milestone
-    /// </summary>
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateAppraisalRequest request)
     {
@@ -85,13 +53,10 @@ public class AppraisalsController : ControllerBase
         }
         catch (Npgsql.PostgresException ex) when (ex.SqlState == "23505")
         {
-            return Conflict(new { message = "This milestone already exists for this employee" });
+            return Conflict(new { message = "An appraisal already exists for this employee on this date" });
         }
     }
 
-    /// <summary>
-    /// Generate all appraisal milestones for an employee based on their start date
-    /// </summary>
     [HttpPost("generate/{employeeId:guid}")]
     public async Task<IActionResult> GenerateMilestones(Guid employeeId)
     {
@@ -102,7 +67,7 @@ public class AppraisalsController : ControllerBase
         try
         {
             var created = await _appraisalService.GenerateMilestonesForEmployeeAsync(employeeId, userId.Value);
-            return Ok(new { message = $"Generated {created.Count} new milestones", milestones = created });
+            return Ok(new { message = $"Generated {created.Count} new reviews", milestones = created });
         }
         catch (ArgumentException ex)
         {
@@ -110,9 +75,6 @@ public class AppraisalsController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Update an appraisal milestone (e.g., mark as complete)
-    /// </summary>
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateAppraisalRequest request)
     {
@@ -126,9 +88,6 @@ public class AppraisalsController : ControllerBase
         return Ok(appraisal);
     }
 
-    /// <summary>
-    /// Delete an appraisal milestone
-    /// </summary>
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
@@ -139,6 +98,6 @@ public class AppraisalsController : ControllerBase
         var success = await _appraisalService.DeleteAsync(id, userId.Value);
         if (!success) return NotFound();
 
-        return Ok(new { message = "Appraisal milestone deleted" });
+        return Ok(new { message = "Appraisal review deleted" });
     }
 }

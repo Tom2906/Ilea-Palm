@@ -19,6 +19,10 @@ public class CompanySettings
     public string[] DefaultHiddenRoles { get; set; } = Array.Empty<string>();
     public string[] DefaultHiddenEmployeeStatuses { get; set; } = Array.Empty<string>();
 
+    // Appraisal grid
+    public int AppraisalReviewsBack { get; set; } = 2;
+    public int AppraisalReviewsForward { get; set; } = 2;
+
     // Rota-specific filters
     public string[] DefaultHiddenRotaRoles { get; set; } = Array.Empty<string>();
     public string[] DefaultHiddenRotaEmployeeStatuses { get; set; } = Array.Empty<string>();

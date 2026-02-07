@@ -3,7 +3,6 @@ namespace EmployeeHub.Api.DTOs;
 public record CreateAppraisalRequest
 {
     public Guid EmployeeId { get; init; }
-    public string MilestoneType { get; init; } = string.Empty;
     public DateOnly DueDate { get; init; }
     public DateOnly? CompletedDate { get; init; }
     public Guid? ConductedById { get; init; }
@@ -14,6 +13,7 @@ public record UpdateAppraisalRequest
 {
     public DateOnly? DueDate { get; init; }
     public DateOnly? CompletedDate { get; init; }
+    public bool ClearCompleted { get; init; }
     public Guid? ConductedById { get; init; }
     public string? Notes { get; init; }
 }
@@ -23,14 +23,13 @@ public record AppraisalResponse
     public Guid Id { get; init; }
     public Guid EmployeeId { get; init; }
     public string EmployeeName { get; init; } = string.Empty;
-    public string MilestoneType { get; init; } = string.Empty;
-    public string MilestoneLabel { get; init; } = string.Empty;
+    public int ReviewNumber { get; init; }
     public DateOnly DueDate { get; init; }
     public DateOnly? CompletedDate { get; init; }
     public Guid? ConductedById { get; init; }
     public string? ConductedByName { get; init; }
     public string? Notes { get; init; }
-    public string Status { get; init; } = string.Empty; // completed, due_soon, overdue, not_yet_due
+    public string Status { get; init; } = string.Empty;
     public int? DaysUntilDue { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime UpdatedAt { get; init; }
@@ -43,17 +42,23 @@ public record AppraisalMatrixRow
     public string LastName { get; init; } = string.Empty;
     public string Role { get; init; } = string.Empty;
     public string? Department { get; init; }
+    public string? EmployeeStatus { get; init; }
     public DateOnly StartDate { get; init; }
-    public List<AppraisalResponse> Milestones { get; init; } = new();
+    public int AppraisalFrequencyMonths { get; init; }
+    public List<AppraisalCellData?> Reviews { get; init; } = new();
 }
 
-public record AppraisalSummary
+public record AppraisalCellData
 {
-    public int TotalEmployees { get; init; }
-    public int Completed { get; init; }
-    public int DueSoon { get; init; }
-    public int Overdue { get; init; }
-    public int NotYetDue { get; init; }
+    public Guid? Id { get; init; }
+    public int ReviewNumber { get; init; }
+    public DateOnly DueDate { get; init; }
+    public DateOnly? CompletedDate { get; init; }
+    public Guid? ConductedById { get; init; }
+    public string? ConductedByName { get; init; }
+    public string? Notes { get; init; }
+    public string Status { get; init; } = string.Empty;
+    public int? DaysUntilDue { get; init; }
 }
 
 public record GenerateMilestonesRequest

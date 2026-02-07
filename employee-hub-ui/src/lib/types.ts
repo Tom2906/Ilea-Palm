@@ -51,6 +51,7 @@ export interface Employee {
   reportsTo: string | null
   supervisorName: string | null
   supervisionFrequency: number
+  appraisalFrequencyMonths: number
   createdAt: string
   updatedAt: string
 }
@@ -252,8 +253,19 @@ export interface SupervisionException {
 export interface AppraisalMilestone {
   id: string
   employeeId: string
-  milestoneType: string
-  milestoneLabel: string
+  reviewNumber: number
+  dueDate: string
+  completedDate: string | null
+  conductedById: string | null
+  conductedByName: string | null
+  notes: string | null
+  status: 'completed' | 'due_soon' | 'overdue' | 'not_yet_due'
+  daysUntilDue: number | null
+}
+
+export interface AppraisalCellData {
+  id: string | null
+  reviewNumber: number
   dueDate: string
   completedDate: string | null
   conductedById: string | null
@@ -268,16 +280,11 @@ export interface AppraisalMatrixRow {
   firstName: string
   lastName: string
   role: string
+  department: string | null
+  employeeStatus: string | null
   startDate: string
-  milestones: AppraisalMilestone[]
-}
-
-export interface AppraisalSummary {
-  totalMilestones: number
-  completed: number
-  dueSoon: number
-  overdue: number
-  notYetDue: number
+  appraisalFrequencyMonths: number
+  reviews: (AppraisalCellData | null)[]
 }
 
 export interface SupervisionRequirement {
@@ -303,6 +310,8 @@ export interface CompanySettings {
   defaultHiddenEmployeeStatuses: string[]
   defaultHiddenRotaRoles: string[]
   defaultHiddenRotaEmployeeStatuses: string[]
+  appraisalReviewsBack: number
+  appraisalReviewsForward: number
   createdAt: string
   updatedAt: string
 }

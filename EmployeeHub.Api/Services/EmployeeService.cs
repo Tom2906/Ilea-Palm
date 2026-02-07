@@ -13,7 +13,7 @@ public class EmployeeService : IEmployeeService
         e.id, e.email, e.first_name, e.last_name, e.department, e.role,
         e.start_date, e.active, e.status_id, es.name as status_name, e.notes,
         e.reports_to, supervisor.first_name || ' ' || supervisor.last_name as supervisor_name,
-        e.supervision_frequency, e.created_at, e.updated_at";
+        e.supervision_frequency, e.appraisal_frequency_months, e.created_at, e.updated_at";
 
     private const string FromClause = @"
         FROM employees e
@@ -59,8 +59,8 @@ public class EmployeeService : IEmployeeService
     {
         await using var conn = await _db.GetConnectionAsync();
         await using var cmd = new NpgsqlCommand(@"
-            INSERT INTO employees (email, first_name, last_name, department, role, start_date, status_id, notes, reports_to, supervision_frequency)
-            VALUES (@email, @firstName, @lastName, @department, @role, @startDate, @statusId, @notes, @reportsTo, @supervisionFrequency)
+            INSERT INTO employees (email, first_name, last_name, department, role, start_date, status_id, notes, reports_to, supervision_frequency, appraisal_frequency_months)
+            VALUES (@email, @firstName, @lastName, @department, @role, @startDate, @statusId, @notes, @reportsTo, @supervisionFrequency, @appraisalFrequencyMonths)
             RETURNING id", conn);
 
         cmd.Parameters.AddWithValue("email", request.Email.ToLowerInvariant());
@@ -73,6 +73,7 @@ public class EmployeeService : IEmployeeService
         cmd.Parameters.AddWithValue("notes", (object?)request.Notes ?? DBNull.Value);
         cmd.Parameters.Add(new NpgsqlParameter("reportsTo", NpgsqlTypes.NpgsqlDbType.Uuid) { Value = (object?)request.ReportsTo ?? DBNull.Value });
         cmd.Parameters.AddWithValue("supervisionFrequency", request.SupervisionFrequency);
+        cmd.Parameters.AddWithValue("appraisalFrequencyMonths", request.AppraisalFrequencyMonths);
 
         var id = (Guid)(await cmd.ExecuteScalarAsync())!;
         var employee = (await GetByIdAsync(id))!;
@@ -101,6 +102,7 @@ public class EmployeeService : IEmployeeService
                 notes = COALESCE(@notes, notes),
                 reports_to = COALESCE(@reportsTo, reports_to),
                 supervision_frequency = COALESCE(@supervisionFrequency, supervision_frequency),
+                appraisal_frequency_months = COALESCE(@appraisalFrequencyMonths, appraisal_frequency_months),
                 updated_at = NOW()
             WHERE id = @id", conn);
 
@@ -116,6 +118,7 @@ public class EmployeeService : IEmployeeService
         cmd.Parameters.AddWithValue("notes", (object?)request.Notes ?? DBNull.Value);
         cmd.Parameters.Add(new NpgsqlParameter("reportsTo", NpgsqlTypes.NpgsqlDbType.Uuid) { Value = (object?)request.ReportsTo ?? DBNull.Value });
         cmd.Parameters.AddWithValue("supervisionFrequency", request.SupervisionFrequency.HasValue ? request.SupervisionFrequency.Value : DBNull.Value);
+        cmd.Parameters.AddWithValue("appraisalFrequencyMonths", request.AppraisalFrequencyMonths.HasValue ? request.AppraisalFrequencyMonths.Value : DBNull.Value);
 
         await cmd.ExecuteNonQueryAsync();
         var updated = await GetByIdAsync(id);
@@ -160,8 +163,9 @@ public class EmployeeService : IEmployeeService
             ReportsTo = reader.IsDBNull(11) ? null : reader.GetGuid(11),
             SupervisorName = reader.IsDBNull(12) ? null : reader.GetString(12),
             SupervisionFrequency = reader.GetInt32(13),
-            CreatedAt = reader.GetDateTime(14),
-            UpdatedAt = reader.GetDateTime(15)
+            AppraisalFrequencyMonths = reader.GetInt32(14),
+            CreatedAt = reader.GetDateTime(15),
+            UpdatedAt = reader.GetDateTime(16)
         };
     }
 }

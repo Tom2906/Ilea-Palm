@@ -11,7 +11,7 @@ import DashboardPage from "@/pages/dashboard"
 import EmployeesPage from "@/pages/employees"
 import TrainingCoursesPage from "@/pages/training-courses"
 import OnboardingItemsPage from "@/pages/onboarding-items"
-import NotificationsPage from "@/pages/notifications"
+
 import EmployeeDetailPage from "@/pages/employee-detail"
 import EmployeeFormPage from "@/pages/employee-form"
 import EmployeeStatusesPage from "@/pages/employee-statuses"
@@ -70,7 +70,6 @@ function AppContent() {
           {/* Administration pages */}
           <Route path="/onboarding-items" element={<OnboardingItemsPage />} />
           <Route path="/employee-statuses" element={<EmployeeStatusesPage />} />
-          <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/audit-log" element={<AuditLogPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/roles" element={<RolesPage />} />

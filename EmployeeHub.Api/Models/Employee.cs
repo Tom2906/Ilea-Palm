@@ -16,6 +16,7 @@ public class Employee
     public Guid? ReportsTo { get; set; }
     public string? SupervisorName { get; set; }
     public int SupervisionFrequency { get; set; } = 2;
+    public int AppraisalFrequencyMonths { get; set; } = 3;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

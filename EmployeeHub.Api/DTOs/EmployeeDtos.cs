@@ -25,6 +25,7 @@ public class CreateEmployeeRequest
     public string? Notes { get; set; }
     public Guid? ReportsTo { get; set; }
     public int SupervisionFrequency { get; set; } = 2;
+    public int AppraisalFrequencyMonths { get; set; } = 3;
 }
 
 public class UpdateEmployeeRequest
@@ -41,6 +42,7 @@ public class UpdateEmployeeRequest
     public string? Notes { get; set; }
     public Guid? ReportsTo { get; set; }
     public int? SupervisionFrequency { get; set; }
+    public int? AppraisalFrequencyMonths { get; set; }
 }
 
 public class EmployeeResponse
@@ -59,6 +61,7 @@ public class EmployeeResponse
     public Guid? ReportsTo { get; set; }
     public string? SupervisorName { get; set; }
     public int SupervisionFrequency { get; set; }
+    public int AppraisalFrequencyMonths { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

@@ -19,6 +19,8 @@ public class UpdateCompanySettingsRequest
     public int? DefaultSupervisionFrequencyMonths { get; set; }
     public int? SupervisionMonthsBack { get; set; }
     public int? SupervisionMonthsForward { get; set; }
+    public int? AppraisalReviewsBack { get; set; }
+    public int? AppraisalReviewsForward { get; set; }
     public string[]? DefaultHiddenRoles { get; set; }
     public string[]? DefaultHiddenEmployeeStatuses { get; set; }
     public string[]? DefaultHiddenRotaRoles { get; set; }
