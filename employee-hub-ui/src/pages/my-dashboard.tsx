@@ -276,7 +276,7 @@ export default function MyDashboardPage() {
     : "Not available"
 
   return (
-    <div className="flex flex-col gap-4 flex-1 min-h-0">
+    <div className="flex flex-col gap-4">
       {/* Info card */}
       <div className="rounded-xl border bg-gradient-to-r from-muted/50 to-white p-5">
         <div className="flex items-center gap-2.5">

@@ -61,7 +61,7 @@ export default function DashboardPage() {
   })
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex flex-col">
       <DashboardOverview
         employees={employees ?? []}
         statuses={statuses ?? []}
