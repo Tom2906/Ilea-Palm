@@ -4,8 +4,50 @@ import { api } from "@/lib/api"
 import type { ChatMessage } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Send, Copy, RotateCcw, Loader2 } from "lucide-react"
+import { Send, Copy, RotateCcw, Loader2, Mic } from "lucide-react"
 import ReactMarkdown from "react-markdown"
+
+// Browser speech recognition types
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList
+  resultIndex: number
+}
+
+interface SpeechRecognitionResultList {
+  length: number
+  item(index: number): SpeechRecognitionResult
+  [index: number]: SpeechRecognitionResult
+}
+
+interface SpeechRecognitionResult {
+  length: number
+  item(index: number): SpeechRecognitionAlternative
+  [index: number]: SpeechRecognitionAlternative
+  isFinal: boolean
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string
+  confidence: number
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean
+  interimResults: boolean
+  lang: string
+  onresult: ((event: SpeechRecognitionEvent) => void) | null
+  onerror: ((event: Event) => void) | null
+  onend: (() => void) | null
+  start(): void
+  stop(): void
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition
+    webkitSpeechRecognition: new () => SpeechRecognition
+  }
+}
 
 export default function DayInLifePage() {
   const { hasPermission } = useAuth()
@@ -14,9 +56,13 @@ export default function DayInLifePage() {
   const [streaming, setStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [isListening, setIsListening] = useState(false)
+  const [interimTranscript, setInterimTranscript] = useState("")
+  const [speechSupported, setSpeechSupported] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const started = useRef(false)
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -25,6 +71,58 @@ export default function DayInLifePage() {
   useEffect(() => {
     scrollToBottom()
   }, [messages, scrollToBottom])
+
+  // Initialize speech recognition
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (SpeechRecognition) {
+      setSpeechSupported(true)
+      const recognition = new SpeechRecognition()
+      recognition.continuous = true
+      recognition.interimResults = true
+      recognition.lang = "en-GB"
+
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        let interim = ""
+        let final = ""
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript
+          if (event.results[i].isFinal) {
+            final += transcript + " "
+          } else {
+            interim += transcript
+          }
+        }
+
+        if (final) {
+          setInput((prev) => (prev + " " + final).trim())
+          setInterimTranscript("")
+        } else {
+          setInterimTranscript(interim)
+        }
+      }
+
+      recognition.onerror = (event) => {
+        console.error("Speech recognition error:", event)
+        setIsListening(false)
+        setInterimTranscript("")
+      }
+
+      recognition.onend = () => {
+        setIsListening(false)
+        setInterimTranscript("")
+      }
+
+      recognitionRef.current = recognition
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop()
+      }
+    }
+  }, [])
 
   // Auto-start conversation on mount
   useEffect(() => {
@@ -141,9 +239,34 @@ export default function DayInLifePage() {
     }
   }
 
+  function startListening() {
+    if (!recognitionRef.current || streaming) return
+    try {
+      setInterimTranscript("")
+      recognitionRef.current.start()
+      setIsListening(true)
+    } catch (err) {
+      console.error("Failed to start speech recognition:", err)
+    }
+  }
+
+  function stopListening() {
+    if (!recognitionRef.current) return
+    try {
+      recognitionRef.current.stop()
+      setIsListening(false)
+      setInterimTranscript("")
+    } catch (err) {
+      console.error("Failed to stop speech recognition:", err)
+    }
+  }
+
   function handleReset() {
     if (streaming) {
       abortRef.current?.abort()
+    }
+    if (isListening) {
+      stopListening()
     }
     setMessages([])
     setInput("")
@@ -258,24 +381,62 @@ export default function DayInLifePage() {
       </div>
 
       {/* Input area */}
-      <div className="flex gap-2 mt-4">
-        <Textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={streaming ? "Waiting for response..." : "Type your response..."}
-          disabled={streaming}
-          className="min-h-[100px] max-h-[300px] resize-none text-base"
-          rows={3}
-        />
-        <Button
-          onClick={handleSend}
-          disabled={!input.trim() || streaming}
-          size="icon"
-          className="shrink-0 h-[60px] w-[60px]"
-        >
-          <Send className="h-5 w-5" />
-        </Button>
+      <div className="flex flex-col gap-2 mt-4">
+        {interimTranscript && (
+          <div className="text-sm text-muted-foreground italic px-3 py-2 bg-muted/50 rounded-md">
+            {interimTranscript}
+          </div>
+        )}
+        <div className="flex gap-2">
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={
+              isListening
+                ? "Listening..."
+                : streaming
+                  ? "Waiting for response..."
+                  : "Type or hold mic to speak..."
+            }
+            disabled={streaming}
+            className="min-h-[100px] max-h-[300px] resize-none text-base"
+            rows={3}
+          />
+          <div className="flex flex-col gap-2 shrink-0">
+            {speechSupported && (
+              <Button
+                onPointerDown={(e) => {
+                  e.preventDefault()
+                  startListening()
+                }}
+                onPointerUp={(e) => {
+                  e.preventDefault()
+                  stopListening()
+                }}
+                onPointerLeave={(e) => {
+                  e.preventDefault()
+                  if (isListening) stopListening()
+                }}
+                disabled={streaming}
+                size="icon"
+                variant={isListening ? "default" : "outline"}
+                className={`h-[60px] w-[60px] ${isListening ? "animate-pulse" : ""}`}
+                title="Hold to speak"
+              >
+                <Mic className="h-5 w-5" />
+              </Button>
+            )}
+            <Button
+              onClick={handleSend}
+              disabled={!input.trim() || streaming}
+              size="icon"
+              className="shrink-0 h-[60px] w-[60px]"
+            >
+              <Send className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   )
