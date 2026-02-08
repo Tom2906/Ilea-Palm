@@ -31,5 +31,7 @@ public class UpdateCompanySettingsRequest
     public string? AnthropicApiKey { get; set; }
     public string? OpenaiApiKey { get; set; }
     public string? GeminiApiKey { get; set; }
+    public Guid? DayInLifeProviderId { get; set; }
+    public string? DayInLifeModel { get; set; }
     public string? DayInLifeSystemPrompt { get; set; }
 }

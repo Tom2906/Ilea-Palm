@@ -319,6 +319,8 @@ export interface CompanySettings {
   anthropicApiKey: string | null
   openaiApiKey: string | null
   geminiApiKey: string | null
+  dayInLifeProviderId: string | null
+  dayInLifeModel: string | null
   dayInLifeSystemPrompt: string | null
   createdAt: string
   updatedAt: string
@@ -405,6 +407,21 @@ export interface LeaveBalance {
 export interface ChatMessage {
   role: "user" | "assistant"
   content: string
+}
+
+export interface AIProvider {
+  id: string
+  provider: string
+  name: string
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AIModel {
+  id: string
+  name: string
+  description: string | null
 }
 
 export interface LeaveEntitlement {

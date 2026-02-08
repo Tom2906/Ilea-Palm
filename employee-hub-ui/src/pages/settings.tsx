@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
-import type { CompanySettings, Employee, EmployeeStatus, MonthlyHours } from "@/lib/types"
+import type { CompanySettings, Employee, EmployeeStatus, MonthlyHours, AIProvider, AIModel } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -150,8 +150,22 @@ export default function SettingsPage() {
     anthropicApiKey: form.anthropicApiKey ?? settings?.anthropicApiKey ?? "",
     openaiApiKey: form.openaiApiKey ?? settings?.openaiApiKey ?? "",
     geminiApiKey: form.geminiApiKey ?? settings?.geminiApiKey ?? "",
+    dayInLifeProviderId: form.dayInLifeProviderId ?? settings?.dayInLifeProviderId ?? null,
+    dayInLifeModel: form.dayInLifeModel ?? settings?.dayInLifeModel ?? "",
     dayInLifeSystemPrompt: form.dayInLifeSystemPrompt ?? settings?.dayInLifeSystemPrompt ?? DEFAULT_DAY_IN_LIFE_PROMPT,
   }
+
+  // AI Providers and Models
+  const { data: aiProviders } = useQuery({
+    queryKey: ["ai-providers"],
+    queryFn: () => api.get<AIProvider[]>("/ai-providers"),
+  })
+
+  const { data: availableModels } = useQuery({
+    queryKey: ["ai-models", currentForm.dayInLifeProviderId],
+    queryFn: () => api.get<AIModel[]>(`/ai-providers/${currentForm.dayInLifeProviderId}/models`),
+    enabled: !!currentForm.dayInLifeProviderId,
+  })
 
   const toggleHiddenRole = (role: string) => {
     const current = currentForm.defaultHiddenRoles
@@ -257,6 +271,8 @@ export default function SettingsPage() {
           anthropicApiKey: currentForm.anthropicApiKey || null,
           openaiApiKey: currentForm.openaiApiKey || null,
           geminiApiKey: currentForm.geminiApiKey || null,
+          dayInLifeProviderId: currentForm.dayInLifeProviderId || null,
+          dayInLifeModel: currentForm.dayInLifeModel || null,
           dayInLifeSystemPrompt: currentForm.dayInLifeSystemPrompt || null,
         })
       } else if (rotaDirty) {
@@ -299,7 +315,8 @@ export default function SettingsPage() {
           <TabsTrigger value="training">Training</TabsTrigger>
           <TabsTrigger value="supervision">Supervision</TabsTrigger>
           <TabsTrigger value="rota">Rota</TabsTrigger>
-          <TabsTrigger value="ai">AI Configuration</TabsTrigger>
+          <TabsTrigger value="day-in-life">Day in the Life</TabsTrigger>
+          <TabsTrigger value="ai">AI Providers (Legacy)</TabsTrigger>
         </TabsList>
 
         <TabsContent value="company" className="space-y-6">
@@ -669,6 +686,93 @@ export default function SettingsPage() {
           </Card>
 
           <SaveBar dirty={isDirty} pending={updateMutation.isPending} onReset={() => { setForm({}); setRotaHours({}) }} />
+        </TabsContent>
+
+        <TabsContent value="day-in-life" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Day in the Life Configuration</CardTitle>
+              <CardDescription>
+                Configure which AI provider and model to use for Day in the Life document generation
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="dayInLifeProvider">AI Provider</FieldLabel>
+                  <Select
+                    value={currentForm.dayInLifeProviderId || ""}
+                    onValueChange={(value) => {
+                      setForm({ ...form, dayInLifeProviderId: value, dayInLifeModel: "" })
+                    }}
+                    disabled={updateMutation.isPending}
+                  >
+                    <SelectTrigger id="dayInLifeProvider" className="max-w-md">
+                      <SelectValue placeholder="Select AI provider" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {aiProviders?.filter(p => p.isActive).map((provider) => (
+                        <SelectItem key={provider.id} value={provider.id}>
+                          {provider.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Choose which AI provider to use. Manage providers in the AI Providers page.
+                  </p>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="dayInLifeModel">Model</FieldLabel>
+                  <Select
+                    value={currentForm.dayInLifeModel || ""}
+                    onValueChange={(value) => setForm({ ...form, dayInLifeModel: value })}
+                    disabled={updateMutation.isPending || !currentForm.dayInLifeProviderId}
+                  >
+                    <SelectTrigger id="dayInLifeModel" className="max-w-md">
+                      <SelectValue placeholder={currentForm.dayInLifeProviderId ? "Select model" : "Select a provider first"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableModels?.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          {model.name} {model.description && `- ${model.description}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Choose which model to use for generating documents
+                  </p>
+                </Field>
+                <Field>
+                  <div className="flex items-center justify-between">
+                    <FieldLabel htmlFor="dayInLifePrompt">System Prompt</FieldLabel>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setForm({ ...form, dayInLifeSystemPrompt: DEFAULT_DAY_IN_LIFE_PROMPT })}
+                      disabled={updateMutation.isPending}
+                    >
+                      Reset to Default
+                    </Button>
+                  </div>
+                  <Textarea
+                    id="dayInLifePrompt"
+                    className="font-mono text-xs min-h-[300px]"
+                    value={currentForm.dayInLifeSystemPrompt}
+                    onChange={(e) => setForm({ ...form, dayInLifeSystemPrompt: e.target.value })}
+                    disabled={updateMutation.isPending}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Customize the AI behavior for Day in the Life documents. Click "Reset to Default" to restore the original prompt.
+                  </p>
+                </Field>
+              </FieldGroup>
+            </CardContent>
+          </Card>
+
+          <SaveBar dirty={isDirty} pending={updateMutation.isPending} onReset={() => setForm({})} />
         </TabsContent>
 
         <TabsContent value="ai" className="space-y-6">

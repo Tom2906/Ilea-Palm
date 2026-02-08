@@ -25,7 +25,7 @@ public class CompanySettingsService : ICompanySettingsService
                    default_hidden_rota_roles, default_hidden_rota_employee_statuses,
                    appraisal_reviews_back, appraisal_reviews_forward,
                    ai_provider, ai_model, ai_api_key, anthropic_api_key, openai_api_key, gemini_api_key,
-                   day_in_life_system_prompt,
+                   day_in_life_provider_id, day_in_life_model, day_in_life_system_prompt,
                    created_at, updated_at
             FROM company_settings
             LIMIT 1", conn);
@@ -68,6 +68,8 @@ public class CompanySettingsService : ICompanySettingsService
                 anthropic_api_key = COALESCE(@anthropicApiKey, anthropic_api_key),
                 openai_api_key = COALESCE(@openaiApiKey, openai_api_key),
                 gemini_api_key = COALESCE(@geminiApiKey, gemini_api_key),
+                day_in_life_provider_id = COALESCE(@dayInLifeProviderId, day_in_life_provider_id),
+                day_in_life_model = COALESCE(@dayInLifeModel, day_in_life_model),
                 day_in_life_system_prompt = COALESCE(@dayInLifePrompt, day_in_life_system_prompt),
                 updated_at = NOW()
             RETURNING id, company_name, default_expiry_warning_days, default_notification_days_before,
@@ -77,7 +79,7 @@ public class CompanySettingsService : ICompanySettingsService
                       default_hidden_rota_roles, default_hidden_rota_employee_statuses,
                       appraisal_reviews_back, appraisal_reviews_forward,
                       ai_provider, ai_model, ai_api_key, anthropic_api_key, openai_api_key, gemini_api_key,
-                      day_in_life_system_prompt,
+                      day_in_life_provider_id, day_in_life_model, day_in_life_system_prompt,
                       created_at, updated_at", conn);
 
         cmd.Parameters.AddWithValue("companyName", (object?)request.CompanyName ?? DBNull.Value);
@@ -101,6 +103,8 @@ public class CompanySettingsService : ICompanySettingsService
         cmd.Parameters.AddWithValue("anthropicApiKey", (object?)request.AnthropicApiKey ?? DBNull.Value);
         cmd.Parameters.AddWithValue("openaiApiKey", (object?)request.OpenaiApiKey ?? DBNull.Value);
         cmd.Parameters.AddWithValue("geminiApiKey", (object?)request.GeminiApiKey ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("dayInLifeProviderId", request.DayInLifeProviderId.HasValue ? request.DayInLifeProviderId.Value : DBNull.Value);
+        cmd.Parameters.AddWithValue("dayInLifeModel", (object?)request.DayInLifeModel ?? DBNull.Value);
         cmd.Parameters.AddWithValue("dayInLifePrompt", (object?)request.DayInLifeSystemPrompt ?? DBNull.Value);
 
         await using var reader = await cmd.ExecuteReaderAsync();
@@ -139,9 +143,11 @@ public class CompanySettingsService : ICompanySettingsService
             AnthropicApiKey = reader.IsDBNull(19) ? null : reader.GetString(19),
             OpenaiApiKey = reader.IsDBNull(20) ? null : reader.GetString(20),
             GeminiApiKey = reader.IsDBNull(21) ? null : reader.GetString(21),
-            DayInLifeSystemPrompt = reader.IsDBNull(22) ? null : reader.GetString(22),
-            CreatedAt = reader.GetDateTime(23),
-            UpdatedAt = reader.GetDateTime(24)
+            DayInLifeProviderId = reader.IsDBNull(22) ? null : reader.GetGuid(22),
+            DayInLifeModel = reader.IsDBNull(23) ? null : reader.GetString(23),
+            DayInLifeSystemPrompt = reader.IsDBNull(24) ? null : reader.GetString(24),
+            CreatedAt = reader.GetDateTime(25),
+            UpdatedAt = reader.GetDateTime(26)
         };
     }
 }

@@ -15,6 +15,7 @@ import {
   UserCog,
   LayoutDashboard,
   MessageSquare,
+  Brain,
   type LucideIcon,
 } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
@@ -72,6 +73,7 @@ const adminNav: NavItem[] = [
   { title: "Onboarding Items", url: "/onboarding-items", icon: ClipboardCheck, permission: "onboarding.view" },
   { title: "Employee Statuses", url: "/employee-statuses", icon: Tag, permission: "employee_statuses.manage" },
   { title: "Audit Log", url: "/audit-log", icon: FileText, permission: "audit_log.view" },
+  { title: "AI Providers", url: "/ai-providers", icon: Brain, permission: "settings.manage" },
   { title: "Roles", url: "/roles", icon: Shield, permission: "users.manage" },
   { title: "Users", url: "/users", icon: UserCog, permission: "users.manage" },
   { title: "Settings", url: "/settings", icon: Settings, permission: "settings.manage" },

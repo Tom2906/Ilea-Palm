@@ -12,6 +12,7 @@ namespace EmployeeHub.Api.Controllers;
 public class DayInLifeController : ControllerBase
 {
     private readonly ICompanySettingsService _settings;
+    private readonly IAIProviderService _providerService;
 
     private const string SystemPrompt = """
         You are a professional writer assisting residential care workers in transforming their rough notes
@@ -63,9 +64,10 @@ public class DayInLifeController : ControllerBase
         (e.g., no adult names, no sense of mood), ask one focused question before generating the final document.
         """;
 
-    public DayInLifeController(ICompanySettingsService settings)
+    public DayInLifeController(ICompanySettingsService settings, IAIProviderService providerService)
     {
         _settings = settings;
+        _providerService = providerService;
     }
 
     [HttpPost("chat")]
@@ -77,25 +79,27 @@ public class DayInLifeController : ControllerBase
 
         // Get AI config from DB
         var companySettings = await _settings.GetAsync();
-        var aiProvider = companySettings.AiProvider?.ToLowerInvariant();
-        var aiModel = companySettings.AiModel;
         var systemPrompt = companySettings.DayInLifeSystemPrompt ?? SystemPrompt;
 
-        // Get the appropriate API key based on provider
-        var aiApiKey = aiProvider switch
-        {
-            "anthropic" => companySettings.AnthropicApiKey,
-            "openai" => companySettings.OpenaiApiKey,
-            "gemini" => companySettings.GeminiApiKey,
-            _ => null
-        };
-
-        if (string.IsNullOrEmpty(aiApiKey) || string.IsNullOrEmpty(aiProvider) || string.IsNullOrEmpty(aiModel))
+        // Get provider configuration
+        if (companySettings.DayInLifeProviderId == null || string.IsNullOrEmpty(companySettings.DayInLifeModel))
         {
             Response.StatusCode = 503;
-            await Response.WriteAsync("AI is not configured. Please configure AI settings in the Settings page.");
+            await Response.WriteAsync("Day in the Life AI is not configured. Please configure it in the Settings page.");
             return;
         }
+
+        var provider = await _providerService.GetByIdAsync(companySettings.DayInLifeProviderId.Value);
+        if (provider == null || !provider.IsActive)
+        {
+            Response.StatusCode = 503;
+            await Response.WriteAsync("The configured AI provider is not available. Please check your settings.");
+            return;
+        }
+
+        var aiProvider = provider.Provider.ToLowerInvariant();
+        var aiApiKey = provider.ApiKey;
+        var aiModel = companySettings.DayInLifeModel;
 
         // Create chat client based on provider
         IChatClient chatClient;
@@ -178,22 +182,22 @@ public class DayInLifeController : ControllerBase
         if (!User.HasPermission("settings.manage")) return StatusCode(403);
 
         var companySettings = await _settings.GetAsync();
-        var aiProvider = companySettings.AiProvider?.ToLowerInvariant();
-        var aiModel = companySettings.AiModel;
 
-        // Get the appropriate API key based on provider
-        var aiApiKey = aiProvider switch
+        // Get provider configuration
+        if (companySettings.DayInLifeProviderId == null || string.IsNullOrEmpty(companySettings.DayInLifeModel))
         {
-            "anthropic" => companySettings.AnthropicApiKey,
-            "openai" => companySettings.OpenaiApiKey,
-            "gemini" => companySettings.GeminiApiKey,
-            _ => null
-        };
-
-        if (string.IsNullOrEmpty(aiApiKey) || string.IsNullOrEmpty(aiProvider) || string.IsNullOrEmpty(aiModel))
-        {
-            return BadRequest(new { success = false, message = "AI configuration is incomplete" });
+            return BadRequest(new { success = false, message = "Day in the Life AI is not configured" });
         }
+
+        var provider = await _providerService.GetByIdAsync(companySettings.DayInLifeProviderId.Value);
+        if (provider == null || !provider.IsActive)
+        {
+            return BadRequest(new { success = false, message = "The configured AI provider is not available" });
+        }
+
+        var aiProvider = provider.Provider.ToLowerInvariant();
+        var aiApiKey = provider.ApiKey;
+        var aiModel = companySettings.DayInLifeModel;
 
         try
         {

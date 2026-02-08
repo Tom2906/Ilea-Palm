@@ -27,13 +27,17 @@ public class CompanySettings
     public string[] DefaultHiddenRotaRoles { get; set; } = Array.Empty<string>();
     public string[] DefaultHiddenRotaEmployeeStatuses { get; set; } = Array.Empty<string>();
 
-    // AI Configuration
+    // AI Configuration (Legacy - kept for backward compatibility)
     public string? AiProvider { get; set; }
     public string? AiModel { get; set; }
-    public string? AiApiKey { get; set; } // Legacy - use provider-specific keys instead
+    public string? AiApiKey { get; set; }
     public string? AnthropicApiKey { get; set; }
     public string? OpenaiApiKey { get; set; }
     public string? GeminiApiKey { get; set; }
+
+    // Day in the Life AI Configuration (New approach)
+    public Guid? DayInLifeProviderId { get; set; }
+    public string? DayInLifeModel { get; set; }
     public string? DayInLifeSystemPrompt { get; set; }
 
     public DateTime CreatedAt { get; set; }
