@@ -27,7 +27,6 @@ import MyTrainingPage from "@/pages/my-training"
 import MyRotaPage from "@/pages/my-rota"
 import MyLeavePage from "@/pages/my-leave"
 import DayInLifePage from "@/pages/day-in-life"
-import AIProvidersPage from "@/pages/ai-providers"
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -71,7 +70,6 @@ export default function App() {
               <Route path="/employee-statuses" element={<EmployeeStatusesPage />} />
               <Route path="/audit-log" element={<AuditLogPage />} />
               <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/ai-providers" element={<AIProvidersPage />} />
               <Route path="/roles" element={<RolesPage />} />
               <Route path="/users" element={<UsersPage />} />
               <Route path="/change-password" element={<ChangePasswordPage />} />

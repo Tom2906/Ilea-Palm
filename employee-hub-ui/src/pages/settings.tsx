@@ -11,7 +11,9 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, CheckCircle2, XCircle } from "lucide-react"
+import { Plus, Pencil, Trash2 } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
 
 const DEFAULT_DAY_IN_LIFE_PROMPT = `You are a professional writer assisting residential care workers in transforming their rough notes
 into polished "Day in the Life" observations for children and young people. These observations
@@ -80,7 +82,6 @@ export default function SettingsPage() {
   const queryClient = useQueryClient()
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ["company-settings"],
@@ -167,6 +168,78 @@ export default function SettingsPage() {
     enabled: !!currentForm.dayInLifeProviderId,
   })
 
+  // AI Provider management state
+  const [isCreateProviderOpen, setIsCreateProviderOpen] = useState(false)
+  const [editingProvider, setEditingProvider] = useState<AIProvider | null>(null)
+  const [providerFormData, setProviderFormData] = useState({
+    provider: "anthropic",
+    name: "",
+    apiKey: "",
+  })
+
+  const createProviderMutation = useMutation({
+    mutationFn: (data: typeof providerFormData) => api.post("/ai-providers", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ai-providers"] })
+      setIsCreateProviderOpen(false)
+      setProviderFormData({ provider: "anthropic", name: "", apiKey: "" })
+    },
+  })
+
+  const updateProviderMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<typeof providerFormData> }) =>
+      api.put(`/ai-providers/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ai-providers"] })
+      setEditingProvider(null)
+      setProviderFormData({ provider: "anthropic", name: "", apiKey: "" })
+    },
+  })
+
+  const deleteProviderMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/ai-providers/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ai-providers"] })
+    },
+  })
+
+  const handleCreateProvider = () => {
+    createProviderMutation.mutate(providerFormData)
+  }
+
+  const handleUpdateProvider = () => {
+    if (!editingProvider) return
+    updateProviderMutation.mutate({
+      id: editingProvider.id,
+      data: {
+        name: providerFormData.name,
+        apiKey: providerFormData.apiKey || undefined,
+      },
+    })
+  }
+
+  const handleEditProvider = (provider: AIProvider) => {
+    setEditingProvider(provider)
+    setProviderFormData({
+      provider: provider.provider,
+      name: provider.name,
+      apiKey: "", // Don't populate API key for security
+    })
+  }
+
+  const getProviderLabel = (provider: string) => {
+    switch (provider) {
+      case "anthropic":
+        return "Anthropic (Claude)"
+      case "openai":
+        return "OpenAI (GPT)"
+      case "gemini":
+        return "Google (Gemini)"
+      default:
+        return provider
+    }
+  }
+
   const toggleHiddenRole = (role: string) => {
     const current = currentForm.defaultHiddenRoles
     const next = current.includes(role)
@@ -212,18 +285,6 @@ export default function SettingsPage() {
     onError: (err: Error) => {
       setError(err.message)
       setSuccess(false)
-    },
-  })
-
-  const testConnectionMutation = useMutation({
-    mutationFn: () => api.post<{ success: boolean; message: string; response?: string }>("/day-in-life/test", {}),
-    onSuccess: (data) => {
-      setTestResult(data)
-      setTimeout(() => setTestResult(null), 5000)
-    },
-    onError: (err: Error) => {
-      setTestResult({ success: false, message: err.message })
-      setTimeout(() => setTestResult(null), 5000)
     },
   })
 
@@ -315,8 +376,8 @@ export default function SettingsPage() {
           <TabsTrigger value="training">Training</TabsTrigger>
           <TabsTrigger value="supervision">Supervision</TabsTrigger>
           <TabsTrigger value="rota">Rota</TabsTrigger>
+          <TabsTrigger value="ai-providers">AI Providers</TabsTrigger>
           <TabsTrigger value="day-in-life">Day in the Life</TabsTrigger>
-          <TabsTrigger value="ai">AI Providers (Legacy)</TabsTrigger>
         </TabsList>
 
         <TabsContent value="company" className="space-y-6">
@@ -775,160 +836,175 @@ export default function SettingsPage() {
           <SaveBar dirty={isDirty} pending={updateMutation.isPending} onReset={() => setForm({})} />
         </TabsContent>
 
-        <TabsContent value="ai" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>AI Configuration</CardTitle>
-              <CardDescription>
-                Configure AI provider for Day in the Life document generation
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor="aiProvider">AI Provider</FieldLabel>
-                  <Select
-                    value={currentForm.aiProvider || ""}
-                    onValueChange={(value) => setForm({ ...form, aiProvider: value })}
-                    disabled={updateMutation.isPending}
-                  >
-                    <SelectTrigger id="aiProvider" className="max-w-md">
-                      <SelectValue placeholder="Select provider" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
-                      <SelectItem value="openai">OpenAI (GPT)</SelectItem>
-                      <SelectItem value="gemini">Google (Gemini)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Choose which AI service to use
-                  </p>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="aiModel">Model Name</FieldLabel>
-                  <Input
-                    id="aiModel"
-                    className="max-w-md"
-                    placeholder="e.g., claude-haiku-4-5-20250929, gpt-4o-mini, gemini-2.0-flash"
-                    value={currentForm.aiModel || ""}
-                    onChange={(e) => setForm({ ...form, aiModel: e.target.value })}
-                    disabled={updateMutation.isPending}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Specific model ID for the selected provider
-                  </p>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="anthropicApiKey">Anthropic API Key</FieldLabel>
-                  <Input
-                    id="anthropicApiKey"
-                    type="password"
-                    className="max-w-md font-mono"
-                    placeholder="Enter Anthropic (Claude) API key"
-                    value={currentForm.anthropicApiKey || ""}
-                    onChange={(e) => setForm({ ...form, anthropicApiKey: e.target.value })}
-                    disabled={updateMutation.isPending}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    For use when Anthropic is selected as provider
-                  </p>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="openaiApiKey">OpenAI API Key</FieldLabel>
-                  <Input
-                    id="openaiApiKey"
-                    type="password"
-                    className="max-w-md font-mono"
-                    placeholder="Enter OpenAI (GPT) API key"
-                    value={currentForm.openaiApiKey || ""}
-                    onChange={(e) => setForm({ ...form, openaiApiKey: e.target.value })}
-                    disabled={updateMutation.isPending}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    For use when OpenAI is selected as provider
-                  </p>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="geminiApiKey">Google Gemini API Key</FieldLabel>
-                  <Input
-                    id="geminiApiKey"
-                    type="password"
-                    className="max-w-md font-mono"
-                    placeholder="Enter Google (Gemini) API key"
-                    value={currentForm.geminiApiKey || ""}
-                    onChange={(e) => setForm({ ...form, geminiApiKey: e.target.value })}
-                    disabled={updateMutation.isPending}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    For use when Gemini is selected as provider
-                  </p>
-                </Field>
-                <Field>
-                  <div className="flex items-center justify-between">
-                    <FieldLabel htmlFor="dayInLifePrompt">Day in the Life System Prompt</FieldLabel>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setForm({ ...form, dayInLifeSystemPrompt: DEFAULT_DAY_IN_LIFE_PROMPT })}
-                      disabled={updateMutation.isPending}
-                    >
-                      Reset to Default
-                    </Button>
-                  </div>
-                  <Textarea
-                    id="dayInLifePrompt"
-                    className="font-mono text-xs min-h-[300px]"
-                    value={currentForm.dayInLifeSystemPrompt}
-                    onChange={(e) => setForm({ ...form, dayInLifeSystemPrompt: e.target.value })}
-                    disabled={updateMutation.isPending}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Customize the AI behavior for Day in the Life documents. Click "Reset to Default" to restore the original prompt.
-                  </p>
-                </Field>
-              </FieldGroup>
-
-              {testResult && (
-                <div className={`mt-4 rounded-md px-3 py-2 text-sm flex items-center gap-2 ${
-                  testResult.success
-                    ? "bg-emerald-50 text-emerald-700"
-                    : "bg-destructive/10 text-destructive"
-                }`}>
-                  {testResult.success ? (
-                    <CheckCircle2 className="h-4 w-4" />
-                  ) : (
-                    <XCircle className="h-4 w-4" />
-                  )}
-                  {testResult.message}
-                </div>
-              )}
-
-              <div className="mt-4 pt-4 border-t">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => testConnectionMutation.mutate()}
-                  disabled={testConnectionMutation.isPending || !currentForm.aiProvider || !currentForm.aiModel || !currentForm.aiApiKey}
-                >
-                  {testConnectionMutation.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Testing Connection...
-                    </>
-                  ) : (
-                    "Test Connection"
-                  )}
+        <TabsContent value="ai-providers" className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">AI Providers</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Manage AI provider configurations for Day in the Life and other features
+              </p>
+            </div>
+            <Dialog open={isCreateProviderOpen} onOpenChange={setIsCreateProviderOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Provider
                 </Button>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Save your changes first, then test the connection to verify it works
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add AI Provider</DialogTitle>
+                </DialogHeader>
+                <FieldGroup>
+                  <Field>
+                    <FieldLabel>Provider</FieldLabel>
+                    <Select
+                      value={providerFormData.provider}
+                      onValueChange={(value) => setProviderFormData({ ...providerFormData, provider: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
+                        <SelectItem value="openai">OpenAI (GPT)</SelectItem>
+                        <SelectItem value="gemini">Google (Gemini)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field>
+                    <FieldLabel>Name</FieldLabel>
+                    <Input
+                      placeholder="e.g., Production Claude, Test GPT"
+                      value={providerFormData.name}
+                      onChange={(e) => setProviderFormData({ ...providerFormData, name: e.target.value })}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel>API Key</FieldLabel>
+                    <Input
+                      type="password"
+                      placeholder="Enter API key"
+                      value={providerFormData.apiKey}
+                      onChange={(e) => setProviderFormData({ ...providerFormData, apiKey: e.target.value })}
+                    />
+                  </Field>
+                </FieldGroup>
+                <div className="flex justify-end gap-2 mt-4">
+                  <Button variant="outline" onClick={() => setIsCreateProviderOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleCreateProvider} disabled={createProviderMutation.isPending}>
+                    {createProviderMutation.isPending ? "Creating..." : "Create"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
 
-          <SaveBar dirty={isDirty} pending={updateMutation.isPending} onReset={() => setForm({})} />
+          <div className="grid gap-4">
+            {aiProviders?.map((provider) => (
+              <Card key={provider.id}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <CardTitle className="text-lg">{provider.name}</CardTitle>
+                      <Badge variant={provider.isActive ? "default" : "secondary"}>
+                        {provider.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">
+                        {getProviderLabel(provider.provider)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Dialog
+                        open={editingProvider?.id === provider.id}
+                        onOpenChange={(open) => {
+                          if (!open) {
+                            setEditingProvider(null)
+                            setProviderFormData({ provider: "anthropic", name: "", apiKey: "" })
+                          }
+                        }}
+                      >
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="sm" onClick={() => handleEditProvider(provider)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Edit Provider</DialogTitle>
+                          </DialogHeader>
+                          <FieldGroup>
+                            <Field>
+                              <FieldLabel>Provider</FieldLabel>
+                              <Input value={getProviderLabel(providerFormData.provider)} disabled />
+                            </Field>
+                            <Field>
+                              <FieldLabel>Name</FieldLabel>
+                              <Input
+                                value={providerFormData.name}
+                                onChange={(e) => setProviderFormData({ ...providerFormData, name: e.target.value })}
+                              />
+                            </Field>
+                            <Field>
+                              <FieldLabel>API Key</FieldLabel>
+                              <Input
+                                type="password"
+                                placeholder="Leave empty to keep existing key"
+                                value={providerFormData.apiKey}
+                                onChange={(e) => setProviderFormData({ ...providerFormData, apiKey: e.target.value })}
+                              />
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Only enter a new key if you want to update it
+                              </p>
+                            </Field>
+                          </FieldGroup>
+                          <div className="flex justify-end gap-2 mt-4">
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setEditingProvider(null)
+                                setProviderFormData({ provider: "anthropic", name: "", apiKey: "" })
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button onClick={handleUpdateProvider} disabled={updateProviderMutation.isPending}>
+                              {updateProviderMutation.isPending ? "Updating..." : "Update"}
+                            </Button>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (confirm(`Delete provider "${provider.name}"?`)) {
+                            deleteProviderMutation.mutate(provider.id)
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-sm text-muted-foreground">
+                    Created {new Date(provider.createdAt).toLocaleDateString()}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            {aiProviders?.length === 0 && (
+              <Card>
+                <CardContent className="py-8 text-center text-muted-foreground">
+                  No AI providers configured. Click "Add Provider" to get started.
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
     </form>
