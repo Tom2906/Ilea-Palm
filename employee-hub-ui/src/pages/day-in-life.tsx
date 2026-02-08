@@ -174,47 +174,73 @@ export default function DayInLifePage() {
 
       const decoder = new TextDecoder()
       let assistantContent = ""
+      let hasError = false
 
       // Add placeholder assistant message
       setMessages((prev) => [...prev, { role: "assistant", content: "" }])
 
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
 
-        const chunk = decoder.decode(value, { stream: true })
-        const lines = chunk.split("\n")
+          const chunk = decoder.decode(value, { stream: true })
+          const lines = chunk.split("\n")
 
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue
-          const data = line.slice(6).trim()
-          if (data === "[DONE]") continue
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue
+            const data = line.slice(6).trim()
+            if (data === "[DONE]") continue
+            if (!data) continue
 
-          try {
-            const parsed = JSON.parse(data)
-            if (parsed.error) {
-              // Handle error from backend
-              setError(parsed.error)
-              // Remove placeholder assistant message
-              setMessages((prev) => prev.slice(0, -1))
-              break
-            } else if (parsed.content) {
-              assistantContent += parsed.content
-              const content = assistantContent
-              setMessages((prev) => {
-                const updated = [...prev]
-                updated[updated.length - 1] = { role: "assistant", content }
-                return updated
-              })
+            try {
+              const parsed = JSON.parse(data)
+              if (parsed.error) {
+                // Handle error from backend
+                setError(parsed.error)
+                hasError = true
+                break
+              } else if (parsed.content) {
+                assistantContent += parsed.content
+                setMessages((prev) => {
+                  const updated = [...prev]
+                  updated[updated.length - 1] = { role: "assistant", content: assistantContent }
+                  return updated
+                })
+              }
+            } catch (e) {
+              console.error("Failed to parse SSE chunk:", data, e)
+              // skip malformed chunks
             }
-          } catch {
-            // skip malformed chunks
           }
+
+          if (hasError) break
+        }
+      } finally {
+        reader.releaseLock()
+      }
+
+      // Remove empty assistant message if there was an error or no content
+      if (hasError || !assistantContent.trim()) {
+        setMessages((prev) => prev.slice(0, -1))
+        if (!hasError && !assistantContent.trim()) {
+          setError("No response received from AI service.")
         }
       }
     } catch (err) {
-      if ((err as Error).name === "AbortError") return
+      if ((err as Error).name === "AbortError") {
+        // Clean up placeholder message on abort
+        setMessages((prev) => {
+          if (prev.length > 0 && prev[prev.length - 1].role === "assistant" && !prev[prev.length - 1].content) {
+            return prev.slice(0, -1)
+          }
+          return prev
+        })
+        return
+      }
       setError((err as Error).message || "Failed to connect to AI service.")
+      // Remove placeholder message on error
+      setMessages((prev) => prev.slice(0, -1))
     } finally {
       setStreaming(false)
       abortRef.current = null

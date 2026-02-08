@@ -81,19 +81,28 @@ public class DayInLifeController : ControllerBase
         var companySettings = await _settings.GetAsync();
         var systemPrompt = companySettings.DayInLifeSystemPrompt ?? SystemPrompt;
 
+        // Set up SSE response early
+        Response.ContentType = "text/event-stream";
+        Response.Headers.CacheControl = "no-cache";
+        Response.Headers.Connection = "keep-alive";
+
         // Get provider configuration
         if (companySettings.DayInLifeProviderId == null || string.IsNullOrEmpty(companySettings.DayInLifeModel))
         {
-            Response.StatusCode = 503;
-            await Response.WriteAsync("Day in the Life AI is not configured. Please configure it in the Settings page.");
+            var errorJson = JsonSerializer.Serialize(new { error = "Day in the Life AI is not configured. Please configure it in the Settings page." });
+            await Response.WriteAsync($"data: {errorJson}\n\n", HttpContext.RequestAborted);
+            await Response.WriteAsync("data: [DONE]\n\n", HttpContext.RequestAborted);
+            await Response.Body.FlushAsync(HttpContext.RequestAborted);
             return;
         }
 
         var provider = await _providerService.GetByIdAsync(companySettings.DayInLifeProviderId.Value);
         if (provider == null || !provider.IsActive)
         {
-            Response.StatusCode = 503;
-            await Response.WriteAsync("The configured AI provider is not available. Please check your settings.");
+            var errorJson = JsonSerializer.Serialize(new { error = "The configured AI provider is not available. Please check your settings." });
+            await Response.WriteAsync($"data: {errorJson}\n\n", HttpContext.RequestAborted);
+            await Response.WriteAsync("data: [DONE]\n\n", HttpContext.RequestAborted);
+            await Response.Body.FlushAsync(HttpContext.RequestAborted);
             return;
         }
 
@@ -115,8 +124,10 @@ public class DayInLifeController : ControllerBase
         }
         catch (Exception ex)
         {
-            Response.StatusCode = 500;
-            await Response.WriteAsync($"Failed to initialize AI client: {ex.Message}");
+            var errorJson = JsonSerializer.Serialize(new { error = $"Failed to initialize AI client: {ex.Message}" });
+            await Response.WriteAsync($"data: {errorJson}\n\n", HttpContext.RequestAborted);
+            await Response.WriteAsync("data: [DONE]\n\n", HttpContext.RequestAborted);
+            await Response.Body.FlushAsync(HttpContext.RequestAborted);
             return;
         }
 
@@ -131,11 +142,6 @@ public class DayInLifeController : ControllerBase
             var role = msg.Role.ToLowerInvariant() == "assistant" ? ChatRole.Assistant : ChatRole.User;
             messages.Add(new ChatMessage(role, msg.Content));
         }
-
-        // Set up SSE response
-        Response.ContentType = "text/event-stream";
-        Response.Headers.CacheControl = "no-cache";
-        Response.Headers.Connection = "keep-alive";
 
         var options = new ChatOptions
         {
