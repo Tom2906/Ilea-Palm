@@ -239,6 +239,16 @@ export default function DayInLifePage() {
             </div>
           </div>
         ))}
+        {streaming && messages.length > 0 && messages[messages.length - 1].role === "user" && (
+          <div className="flex justify-start">
+            <div className="bg-muted rounded-lg px-4 py-2.5 text-sm">
+              <span className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Thinking...
+              </span>
+            </div>
+          </div>
+        )}
         {error && (
           <div className="text-center text-sm text-destructive py-2">
             {error}
