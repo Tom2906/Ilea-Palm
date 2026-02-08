@@ -41,16 +41,9 @@ export function LoginForm({
     setMsLoading(true)
     try {
       await onMicrosoftLogin()
-    } catch (err: unknown) {
-      // Silently ignore user cancellation
-      const error = err as { errorCode?: string }
-      if (error?.errorCode === "user_cancelled") return
-      if (error?.errorCode === "popup_window_error") {
-        setError("Please allow popups for this site")
-        return
-      }
+      // Page redirects to Microsoft — code below only runs on error
+    } catch (err) {
       setError(err instanceof Error ? err.message : "Microsoft sign-in failed")
-    } finally {
       setMsLoading(false)
     }
   }

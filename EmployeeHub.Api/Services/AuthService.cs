@@ -21,7 +21,7 @@ public class AuthService : IAuthService
 
     private const string UserQuery = @"
         SELECT u.id, u.email, u.password_hash, u.display_name, u.role_id, u.employee_id, u.active,
-               r.name AS role_name
+               r.name AS role_name, u.auth_method
         FROM users u
         JOIN roles r ON r.id = u.role_id";
 
@@ -44,7 +44,7 @@ public class AuthService : IAuthService
         }
     }
 
-    public async Task<LoginResponse?> LoginAsync(LoginRequest request)
+    public async Task<(LoginResponse? Response, string? Error)> LoginAsync(LoginRequest request)
     {
         await using var conn = await _db.GetConnectionAsync();
         await using var cmd = new NpgsqlCommand(
@@ -53,16 +53,22 @@ public class AuthService : IAuthService
 
         await using var reader = await cmd.ExecuteReaderAsync();
         if (!await reader.ReadAsync())
-            return null;
+            return (null, "Invalid email or password");
 
         var user = ReadUser(reader);
         await reader.CloseAsync();
 
         if (!user.Active)
-            return null;
+            return (null, "Invalid email or password");
+
+        if (user.AuthMethod == "microsoft")
+            return (null, "This account uses Microsoft sign-in");
+
+        if (string.IsNullOrEmpty(user.PasswordHash))
+            return (null, "This account uses Microsoft sign-in");
 
         if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-            return null;
+            return (null, "Invalid email or password");
 
         user.Permissions = await LoadPermissionsAsync(conn, user.RoleId);
 
@@ -73,11 +79,11 @@ public class AuthService : IAuthService
 
         var token = GenerateJwtToken(user);
 
-        return new LoginResponse
+        return (new LoginResponse
         {
             Token = token,
             User = BuildUserInfo(user)
-        };
+        }, null);
     }
 
     public async Task<(LoginResponse? Response, string? Error)> LoginWithMicrosoftAsync(string idToken)
@@ -121,16 +127,85 @@ public class AuthService : IAuthService
         cmd.Parameters.AddWithValue("email", email.ToLowerInvariant());
 
         await using var reader = await cmd.ExecuteReaderAsync();
+        User user;
         if (!await reader.ReadAsync())
-            return (null, "Your account is not provisioned. Contact your administrator.");
+        {
+            await reader.CloseAsync();
 
-        var user = ReadUser(reader);
-        await reader.CloseAsync();
+            // JIT provisioning: create user with Employee role
+            var displayName = principal.FindFirst("name")?.Value
+                ?? principal.FindFirst(ClaimTypes.Name)?.Value
+                ?? email.Split('@')[0];
 
-        if (!user.Active)
-            return (null, "Your account is not provisioned. Contact your administrator.");
+            await using var roleCmd = new NpgsqlCommand(
+                "SELECT id FROM roles WHERE name = 'Employee'", conn);
+            var roleId = await roleCmd.ExecuteScalarAsync() as Guid?;
+            if (roleId == null)
+                return (null, "Default role not configured. Contact your administrator.");
 
-        user.Permissions = await LoadPermissionsAsync(conn, user.RoleId);
+            // Match employee by email
+            await using var empCmd = new NpgsqlCommand(
+                "SELECT id FROM employees WHERE LOWER(email) = @email", conn);
+            empCmd.Parameters.AddWithValue("email", email.ToLowerInvariant());
+            var employeeId = await empCmd.ExecuteScalarAsync() as Guid?;
+
+            await using var createCmd = new NpgsqlCommand(@"
+                INSERT INTO users (email, display_name, password_hash, role_id, auth_method, active, employee_id)
+                VALUES (@email, @name, NULL, @roleId, 'microsoft', true, @empId)
+                RETURNING id", conn);
+            createCmd.Parameters.AddWithValue("email", email.ToLowerInvariant());
+            createCmd.Parameters.AddWithValue("name", displayName);
+            createCmd.Parameters.AddWithValue("roleId", roleId.Value);
+            createCmd.Parameters.AddWithValue("empId", (object?)employeeId ?? DBNull.Value);
+
+            var newId = (Guid)(await createCmd.ExecuteScalarAsync())!;
+
+            user = new User
+            {
+                Id = newId,
+                Email = email.ToLowerInvariant(),
+                DisplayName = displayName,
+                RoleId = roleId.Value,
+                RoleName = "Employee",
+                EmployeeId = employeeId,
+                AuthMethod = "microsoft",
+                Active = true,
+                Permissions = new Dictionary<string, string>()
+            };
+
+            await _audit.LogAsync("users", newId, "jit_create", newId);
+        }
+        else
+        {
+            user = ReadUser(reader);
+            await reader.CloseAsync();
+
+            if (!user.Active)
+                return (null, "Your account has been deactivated. Contact your administrator.");
+
+            if (user.AuthMethod == "password")
+                return (null, "This account uses password sign-in. Contact your administrator to enable Microsoft login.");
+
+            // Try to match employee if not already linked
+            if (!user.EmployeeId.HasValue)
+            {
+                await using var empCmd = new NpgsqlCommand(
+                    "SELECT id FROM employees WHERE LOWER(email) = @empEmail", conn);
+                empCmd.Parameters.AddWithValue("empEmail", email.ToLowerInvariant());
+                var empId = await empCmd.ExecuteScalarAsync() as Guid?;
+                if (empId.HasValue)
+                {
+                    await using var linkCmd = new NpgsqlCommand(
+                        "UPDATE users SET employee_id = @empId WHERE id = @userId", conn);
+                    linkCmd.Parameters.AddWithValue("empId", empId.Value);
+                    linkCmd.Parameters.AddWithValue("userId", user.Id);
+                    await linkCmd.ExecuteNonQueryAsync();
+                    user.EmployeeId = empId;
+                }
+            }
+
+            user.Permissions = await LoadPermissionsAsync(conn, user.RoleId);
+        }
 
         await using var updateCmd = new NpgsqlCommand(
             "UPDATE users SET last_login = NOW() WHERE id = @id", conn);
@@ -152,10 +227,20 @@ public class AuthService : IAuthService
     {
         await using var conn = await _db.GetConnectionAsync();
         await using var cmd = new NpgsqlCommand(
-            "SELECT password_hash FROM users WHERE id = @id", conn);
+            "SELECT password_hash, auth_method FROM users WHERE id = @id", conn);
         cmd.Parameters.AddWithValue("id", userId);
 
-        var currentHash = await cmd.ExecuteScalarAsync() as string;
+        await using var reader = await cmd.ExecuteReaderAsync();
+        if (!await reader.ReadAsync())
+            return false;
+
+        var authMethod = reader.GetString(1);
+        if (authMethod == "microsoft")
+            return false;
+
+        var currentHash = reader.IsDBNull(0) ? null : reader.GetString(0);
+        await reader.CloseAsync();
+
         if (currentHash == null)
             return false;
 
@@ -235,12 +320,13 @@ public class AuthService : IAuthService
         {
             Id = reader.GetGuid(0),
             Email = reader.GetString(1),
-            PasswordHash = reader.GetString(2),
+            PasswordHash = reader.IsDBNull(2) ? null : reader.GetString(2),
             DisplayName = reader.GetString(3),
             RoleId = reader.GetGuid(4),
             EmployeeId = reader.IsDBNull(5) ? null : reader.GetGuid(5),
             Active = reader.GetBoolean(6),
-            RoleName = reader.GetString(7)
+            RoleName = reader.GetString(7),
+            AuthMethod = reader.GetString(8)
         };
     }
 

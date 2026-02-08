@@ -14,6 +14,7 @@ public class UserListResponse
     public bool Active { get; set; }
     public DateTime? LastLogin { get; set; }
     public DateTime CreatedAt { get; set; }
+    public string AuthMethod { get; set; } = "password";
 }
 
 public class CreateUserRequest
@@ -24,13 +25,15 @@ public class CreateUserRequest
     [Required, MaxLength(200)]
     public string DisplayName { get; set; } = string.Empty;
 
-    [Required, MinLength(8)]
-    public string Password { get; set; } = string.Empty;
+    [MinLength(8)]
+    public string? Password { get; set; }
 
     [Required]
     public Guid RoleId { get; set; }
 
     public Guid? EmployeeId { get; set; }
+
+    public string? AuthMethod { get; set; }
 }
 
 public class UpdateUserRequest
@@ -41,6 +44,8 @@ public class UpdateUserRequest
     public Guid? EmployeeId { get; set; }
 
     public bool? Active { get; set; }
+
+    public string? AuthMethod { get; set; }
 }
 
 public class ResetPasswordRequest

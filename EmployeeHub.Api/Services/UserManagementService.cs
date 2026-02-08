@@ -11,7 +11,7 @@ public class UserManagementService : IUserManagementService
     private const string ListQuery = @"
         SELECT u.id, u.email, u.display_name, u.role_id, r.name AS role_name,
                u.employee_id, COALESCE(e.first_name || ' ' || e.last_name, '') AS employee_name,
-               u.active, u.last_login, u.created_at
+               u.active, u.last_login, u.created_at, u.auth_method
         FROM users u
         JOIN roles r ON r.id = u.role_id
         LEFT JOIN employees e ON e.id = u.employee_id";
@@ -44,6 +44,12 @@ public class UserManagementService : IUserManagementService
     {
         await using var conn = await _db.GetConnectionAsync();
 
+        var authMethod = request.AuthMethod ?? "microsoft";
+
+        // Validate: password required for password/both auth methods
+        if (authMethod is "password" or "both" && string.IsNullOrEmpty(request.Password))
+            throw new InvalidOperationException("Password is required for this authentication method");
+
         // Check email uniqueness
         await using var checkCmd = new NpgsqlCommand(
             "SELECT 1 FROM users WHERE email = @email", conn);
@@ -51,17 +57,20 @@ public class UserManagementService : IUserManagementService
         if (await checkCmd.ExecuteScalarAsync() != null)
             throw new InvalidOperationException("A user with this email already exists");
 
-        var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+        string? passwordHash = authMethod is "password" or "both"
+            ? BCrypt.Net.BCrypt.HashPassword(request.Password)
+            : null;
 
         await using var cmd = new NpgsqlCommand(@"
-            INSERT INTO users (email, display_name, password_hash, role_id, employee_id, active)
-            VALUES (@email, @name, @hash, @roleId, @empId, true)
+            INSERT INTO users (email, display_name, password_hash, role_id, employee_id, auth_method, active)
+            VALUES (@email, @name, @hash, @roleId, @empId, @authMethod, true)
             RETURNING id", conn);
         cmd.Parameters.AddWithValue("email", request.Email.ToLowerInvariant());
         cmd.Parameters.AddWithValue("name", request.DisplayName);
-        cmd.Parameters.AddWithValue("hash", passwordHash);
+        cmd.Parameters.AddWithValue("hash", (object?)passwordHash ?? DBNull.Value);
         cmd.Parameters.AddWithValue("roleId", request.RoleId);
         cmd.Parameters.AddWithValue("empId", (object?)request.EmployeeId ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("authMethod", authMethod);
 
         var newId = (Guid)(await cmd.ExecuteScalarAsync())!;
 
@@ -85,12 +94,14 @@ public class UserManagementService : IUserManagementService
                 role_id = @roleId,
                 employee_id = @empId,
                 active = COALESCE(@active, active),
+                auth_method = COALESCE(@authMethod, auth_method),
                 updated_at = NOW()
             WHERE id = @id", conn);
         cmd.Parameters.AddWithValue("id", id);
         cmd.Parameters.AddWithValue("roleId", request.RoleId);
         cmd.Parameters.AddWithValue("empId", (object?)request.EmployeeId ?? DBNull.Value);
         cmd.Parameters.AddWithValue("active", (object?)request.Active ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("authMethod", (object?)request.AuthMethod ?? DBNull.Value);
         await cmd.ExecuteNonQueryAsync();
 
         await _audit.LogAsync("users", id, "update", updatedBy);
@@ -133,7 +144,8 @@ public class UserManagementService : IUserManagementService
                 EmployeeName = reader.IsDBNull(6) ? null : reader.GetString(6),
                 Active = reader.GetBoolean(7),
                 LastLogin = reader.IsDBNull(8) ? null : reader.GetDateTime(8),
-                CreatedAt = reader.GetDateTime(9)
+                CreatedAt = reader.GetDateTime(9),
+                AuthMethod = reader.GetString(10)
             });
         }
         return users;

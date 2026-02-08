@@ -3,12 +3,12 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react"
-import { useMsal } from "@azure/msal-react"
 import { api } from "@/lib/api"
-import { msalEnabled, loginRequest } from "@/lib/msal-config"
+import { msalInstance, loginRequest } from "@/lib/msal-config"
 import type { LoginResponse, UserInfo } from "@/lib/types"
 
 interface AuthContextType {
@@ -23,24 +23,47 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
-function useAuthState() {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserInfo | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const initStarted = useRef(false)
+
   useEffect(() => {
-    const token = api.getToken()
-    if (token) {
-      api
-        .get<UserInfo>("/auth/me")
-        .then(setUser)
-        .catch(() => {
+    if (initStarted.current) return
+    initStarted.current = true
+
+    const init = async () => {
+      // Handle Microsoft redirect response (if returning from Microsoft login)
+      if (msalInstance) {
+        try {
+          const result = await msalInstance.handleRedirectPromise()
+          if (result?.idToken) {
+            const response = await api.post<LoginResponse>("/auth/microsoft", {
+              idToken: result.idToken,
+            })
+            api.setToken(response.token)
+            setUser(response.user)
+            setLoading(false)
+            return
+          }
+        } catch {
+          // Redirect processing failed — fall through to normal token check
+        }
+      }
+
+      // Normal JWT token validation
+      const token = api.getToken()
+      if (token) {
+        try {
+          setUser(await api.get<UserInfo>("/auth/me"))
+        } catch {
           api.clearToken()
-          setUser(null)
-        })
-        .finally(() => setLoading(false))
-    } else {
+        }
+      }
       setLoading(false)
     }
+    init()
   }, [])
 
   const login = useCallback(async (email: string, password: string) => {
@@ -64,54 +87,19 @@ function useAuthState() {
     [permissions],
   )
 
-  return {
-    user,
-    setUser,
-    loading,
-    login,
-    logout,
-    hasPermission,
-    permissions,
-  }
-}
-
-/** Provider used when MSAL is enabled — calls useMsal() hook */
-function MsalAuthProvider({ children }: { children: ReactNode }) {
-  const { setUser, ...state } = useAuthState()
-  const { instance } = useMsal()
-
-  const loginWithMicrosoft = useCallback(async () => {
-    const result = await instance.loginPopup(loginRequest)
-    const response = await api.post<LoginResponse>("/auth/microsoft", {
-      idToken: result.idToken,
-    })
-    api.setToken(response.token)
-    setUser(response.user)
-  }, [instance, setUser])
+  const loginWithMicrosoft = msalInstance
+    ? async () => {
+        await msalInstance.loginRedirect(loginRequest)
+      }
+    : null
 
   return (
-    <AuthContext.Provider value={{ ...state, loginWithMicrosoft }}>
+    <AuthContext.Provider
+      value={{ user, loading, login, loginWithMicrosoft, logout, hasPermission, permissions }}
+    >
       {children}
     </AuthContext.Provider>
   )
-}
-
-/** Provider used when MSAL is not configured */
-function BasicAuthProvider({ children }: { children: ReactNode }) {
-  const { setUser: _, ...state } = useAuthState()
-
-  return (
-    <AuthContext.Provider value={{ ...state, loginWithMicrosoft: null }}>
-      {children}
-    </AuthContext.Provider>
-  )
-}
-
-export function AuthProvider({ children }: { children: ReactNode }) {
-  if (msalEnabled) {
-    return <MsalAuthProvider>{children}</MsalAuthProvider>
-  }
-  return <BasicAuthProvider>{children}</BasicAuthProvider>
 }
 
 export function useAuth() {

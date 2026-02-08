@@ -30,6 +30,7 @@ interface CreateForm {
   email: string
   displayName: string
   password: string
+  authMethod: "password" | "microsoft" | "both"
   roleId: string
   employeeId: string
 }
@@ -38,6 +39,7 @@ interface EditForm {
   roleId: string
   employeeId: string
   active: boolean
+  authMethod: "password" | "microsoft" | "both"
 }
 
 interface ResetForm {
@@ -54,10 +56,10 @@ export default function UsersPage() {
   const [resetUser, setResetUser] = useState<UserListResponse | null>(null)
 
   const [createForm, setCreateForm] = useState<CreateForm>({
-    email: "", displayName: "", password: "", roleId: "", employeeId: "",
+    email: "", displayName: "", password: "", authMethod: "microsoft", roleId: "", employeeId: "",
   })
   const [editForm, setEditForm] = useState<EditForm>({
-    roleId: "", employeeId: "", active: true,
+    roleId: "", employeeId: "", active: true, authMethod: "microsoft",
   })
   const [resetForm, setResetForm] = useState<ResetForm>({ newPassword: "" })
 
@@ -125,16 +127,17 @@ export default function UsersPage() {
       const body: Record<string, unknown> = {
         email: data.email,
         displayName: data.displayName,
-        password: data.password,
+        authMethod: data.authMethod,
         roleId: data.roleId,
       }
+      if (data.authMethod === "password" || data.authMethod === "both") body.password = data.password
       if (data.employeeId && data.employeeId !== "none") body.employeeId = data.employeeId
       return api.post<UserListResponse>("/users", body)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] })
       setCreateOpen(false)
-      setCreateForm({ email: "", displayName: "", password: "", roleId: "", employeeId: "" })
+      setCreateForm({ email: "", displayName: "", password: "", authMethod: "microsoft", roleId: "", employeeId: "" })
     },
   })
 
@@ -143,6 +146,7 @@ export default function UsersPage() {
       const body: Record<string, unknown> = {
         roleId: data.roleId,
         active: data.active,
+        authMethod: data.authMethod,
       }
       if (data.employeeId && data.employeeId !== "none") body.employeeId = data.employeeId
       else body.employeeId = null
@@ -169,6 +173,7 @@ export default function UsersPage() {
       roleId: u.roleId,
       employeeId: u.employeeId ?? "",
       active: u.active,
+      authMethod: u.authMethod,
     })
   }
 
@@ -207,6 +212,9 @@ export default function UsersPage() {
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">{u.displayName}</span>
               <Badge variant="outline" className="text-xs">{u.roleName}</Badge>
+              <Badge variant="outline" className="text-xs">
+                {u.authMethod === "microsoft" ? "Microsoft" : u.authMethod === "both" ? "Both" : "Password"}
+              </Badge>
               {!u.active && (
                 <Badge variant="secondary" className="text-xs">Inactive</Badge>
               )}
@@ -224,17 +232,19 @@ export default function UsersPage() {
               )}
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={(e) => {
-              e.stopPropagation()
-              setResetUser(u)
-            }}
-            title="Reset password"
-          >
-            <KeyRound className="h-4 w-4" />
-          </Button>
+          {u.authMethod !== "microsoft" && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation()
+                setResetUser(u)
+              }}
+              title="Reset password"
+            >
+              <KeyRound className="h-4 w-4" />
+            </Button>
+          )}
         </ListRow>
       ))}
 
@@ -271,16 +281,34 @@ export default function UsersPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="create-password">Password</Label>
-              <Input
-                id="create-password"
-                type="password"
-                value={createForm.password}
-                onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
-                required
-                minLength={8}
-              />
+              <Label>Authentication Method</Label>
+              <Select
+                value={createForm.authMethod}
+                onValueChange={(v) => setCreateForm({ ...createForm, authMethod: v as CreateForm["authMethod"], password: "" })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="microsoft">Microsoft</SelectItem>
+                  <SelectItem value="password">Password</SelectItem>
+                  <SelectItem value="both">Both</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+            {(createForm.authMethod === "password" || createForm.authMethod === "both") && (
+              <div className="space-y-2">
+                <Label htmlFor="create-password">Password</Label>
+                <Input
+                  id="create-password"
+                  type="password"
+                  value={createForm.password}
+                  onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                  required
+                  minLength={8}
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Role</Label>
               <Select
@@ -374,6 +402,22 @@ export default function UsersPage() {
                       {emp.firstName} {emp.lastName}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Authentication Method</Label>
+              <Select
+                value={editForm.authMethod}
+                onValueChange={(v) => setEditForm({ ...editForm, authMethod: v as EditForm["authMethod"] })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="microsoft">Microsoft</SelectItem>
+                  <SelectItem value="password">Password</SelectItem>
+                  <SelectItem value="both">Both</SelectItem>
                 </SelectContent>
               </Select>
             </div>

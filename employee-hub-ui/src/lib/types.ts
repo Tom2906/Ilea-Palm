@@ -29,6 +29,7 @@ export interface UserListResponse {
   active: boolean
   lastLogin: string | null
   createdAt: string
+  authMethod: "password" | "microsoft" | "both"
 }
 
 export interface LoginResponse {

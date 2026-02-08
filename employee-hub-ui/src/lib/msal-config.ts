@@ -1,4 +1,4 @@
-import { LogLevel } from "@azure/msal-browser"
+import { LogLevel, PublicClientApplication } from "@azure/msal-browser"
 import type { Configuration } from "@azure/msal-browser"
 
 const clientId = import.meta.env.VITE_AZURE_CLIENT_ID
@@ -25,3 +25,8 @@ export const msalConfig: Configuration = {
 export const loginRequest = {
   scopes: ["openid", "profile", "email"],
 }
+
+// Single shared MSAL instance — initialized in main.tsx before app renders
+export const msalInstance = msalEnabled
+  ? new PublicClientApplication(msalConfig)
+  : null

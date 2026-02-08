@@ -19,11 +19,11 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var result = await _authService.LoginAsync(request);
-        if (result == null)
-            return Unauthorized(new { error = "Invalid email or password" });
+        var (response, error) = await _authService.LoginAsync(request);
+        if (response == null)
+            return Unauthorized(new { error = error ?? "Invalid email or password" });
 
-        return Ok(result);
+        return Ok(response);
     }
 
     [HttpPost("microsoft")]
