@@ -25,4 +25,7 @@ public class UpdateCompanySettingsRequest
     public string[]? DefaultHiddenEmployeeStatuses { get; set; }
     public string[]? DefaultHiddenRotaRoles { get; set; }
     public string[]? DefaultHiddenRotaEmployeeStatuses { get; set; }
+    public string? AiProvider { get; set; }
+    public string? AiModel { get; set; }
+    public string? AiApiKey { get; set; }
 }

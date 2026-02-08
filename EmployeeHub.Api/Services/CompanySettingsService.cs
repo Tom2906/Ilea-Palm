@@ -24,6 +24,7 @@ public class CompanySettingsService : ICompanySettingsService
                    default_hidden_roles, default_hidden_employee_statuses,
                    default_hidden_rota_roles, default_hidden_rota_employee_statuses,
                    appraisal_reviews_back, appraisal_reviews_forward,
+                   ai_provider, ai_model, ai_api_key,
                    created_at, updated_at
             FROM company_settings
             LIMIT 1", conn);
@@ -60,6 +61,9 @@ public class CompanySettingsService : ICompanySettingsService
                 default_hidden_rota_employee_statuses = COALESCE(@hiddenRotaStatuses, default_hidden_rota_employee_statuses),
                 appraisal_reviews_back = COALESCE(@appraisalReviewsBack, appraisal_reviews_back),
                 appraisal_reviews_forward = COALESCE(@appraisalReviewsForward, appraisal_reviews_forward),
+                ai_provider = COALESCE(@aiProvider, ai_provider),
+                ai_model = COALESCE(@aiModel, ai_model),
+                ai_api_key = COALESCE(@aiApiKey, ai_api_key),
                 updated_at = NOW()
             RETURNING id, company_name, default_expiry_warning_days, default_notification_days_before,
                       default_reminder_frequency_days, default_notify_employee, default_notify_admin,
@@ -67,6 +71,7 @@ public class CompanySettingsService : ICompanySettingsService
                       default_hidden_roles, default_hidden_employee_statuses,
                       default_hidden_rota_roles, default_hidden_rota_employee_statuses,
                       appraisal_reviews_back, appraisal_reviews_forward,
+                      ai_provider, ai_model, ai_api_key,
                       created_at, updated_at", conn);
 
         cmd.Parameters.AddWithValue("companyName", (object?)request.CompanyName ?? DBNull.Value);
@@ -84,6 +89,9 @@ public class CompanySettingsService : ICompanySettingsService
         cmd.Parameters.AddWithValue("hiddenRotaStatuses", request.DefaultHiddenRotaEmployeeStatuses != null ? request.DefaultHiddenRotaEmployeeStatuses : DBNull.Value);
         cmd.Parameters.AddWithValue("appraisalReviewsBack", request.AppraisalReviewsBack.HasValue ? request.AppraisalReviewsBack.Value : DBNull.Value);
         cmd.Parameters.AddWithValue("appraisalReviewsForward", request.AppraisalReviewsForward.HasValue ? request.AppraisalReviewsForward.Value : DBNull.Value);
+        cmd.Parameters.AddWithValue("aiProvider", (object?)request.AiProvider ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("aiModel", (object?)request.AiModel ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("aiApiKey", (object?)request.AiApiKey ?? DBNull.Value);
 
         await using var reader = await cmd.ExecuteReaderAsync();
         await reader.ReadAsync();
@@ -115,8 +123,11 @@ public class CompanySettingsService : ICompanySettingsService
             DefaultHiddenRotaEmployeeStatuses = reader.IsDBNull(13) ? Array.Empty<string>() : reader.GetFieldValue<string[]>(13),
             AppraisalReviewsBack = reader.GetInt32(14),
             AppraisalReviewsForward = reader.GetInt32(15),
-            CreatedAt = reader.GetDateTime(16),
-            UpdatedAt = reader.GetDateTime(17)
+            AiProvider = reader.IsDBNull(16) ? null : reader.GetString(16),
+            AiModel = reader.IsDBNull(17) ? null : reader.GetString(17),
+            AiApiKey = reader.IsDBNull(18) ? null : reader.GetString(18),
+            CreatedAt = reader.GetDateTime(19),
+            UpdatedAt = reader.GetDateTime(20)
         };
     }
 }

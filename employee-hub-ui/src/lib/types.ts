@@ -313,6 +313,9 @@ export interface CompanySettings {
   defaultHiddenRotaEmployeeStatuses: string[]
   appraisalReviewsBack: number
   appraisalReviewsForward: number
+  aiProvider: string | null
+  aiModel: string | null
+  aiApiKey: string | null
   createdAt: string
   updatedAt: string
 }
@@ -393,6 +396,11 @@ export interface LeaveBalance {
   approvedDaysTaken: number
   pendingDays: number
   remaining: number
+}
+
+export interface ChatMessage {
+  role: "user" | "assistant"
+  content: string
 }
 
 export interface LeaveEntitlement {

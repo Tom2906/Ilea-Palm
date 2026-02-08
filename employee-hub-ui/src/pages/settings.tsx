@@ -9,6 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Loader2, CheckCircle2, XCircle } from "lucide-react"
 
 function SaveBar({ dirty, pending, onReset }: { dirty: boolean; pending: boolean; onReset: () => void }) {
   return (
@@ -29,6 +31,7 @@ export default function SettingsPage() {
   const queryClient = useQueryClient()
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ["company-settings"],
@@ -92,6 +95,9 @@ export default function SettingsPage() {
     defaultHiddenEmployeeStatuses: form.defaultHiddenEmployeeStatuses ?? settings?.defaultHiddenEmployeeStatuses ?? [],
     defaultHiddenRotaRoles: form.defaultHiddenRotaRoles ?? settings?.defaultHiddenRotaRoles ?? [],
     defaultHiddenRotaEmployeeStatuses: form.defaultHiddenRotaEmployeeStatuses ?? settings?.defaultHiddenRotaEmployeeStatuses ?? [],
+    aiProvider: form.aiProvider ?? settings?.aiProvider ?? "",
+    aiModel: form.aiModel ?? settings?.aiModel ?? "",
+    aiApiKey: form.aiApiKey ?? settings?.aiApiKey ?? "",
   }
 
   const toggleHiddenRole = (role: string) => {
@@ -142,6 +148,18 @@ export default function SettingsPage() {
     },
   })
 
+  const testConnectionMutation = useMutation({
+    mutationFn: () => api.post<{ success: boolean; message: string; response?: string }>("/day-in-life/test", {}),
+    onSuccess: (data) => {
+      setTestResult(data)
+      setTimeout(() => setTestResult(null), 5000)
+    },
+    onError: (err: Error) => {
+      setTestResult({ success: false, message: err.message })
+      setTimeout(() => setTestResult(null), 5000)
+    },
+  })
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
@@ -180,6 +198,9 @@ export default function SettingsPage() {
           defaultHiddenEmployeeStatuses: currentForm.defaultHiddenEmployeeStatuses,
           defaultHiddenRotaRoles: currentForm.defaultHiddenRotaRoles,
           defaultHiddenRotaEmployeeStatuses: currentForm.defaultHiddenRotaEmployeeStatuses,
+          aiProvider: currentForm.aiProvider || null,
+          aiModel: currentForm.aiModel || null,
+          aiApiKey: currentForm.aiApiKey || null,
         })
       } else if (rotaDirty) {
         // Only hours changed, show success manually
@@ -221,6 +242,7 @@ export default function SettingsPage() {
           <TabsTrigger value="training">Training</TabsTrigger>
           <TabsTrigger value="supervision">Supervision</TabsTrigger>
           <TabsTrigger value="rota">Rota</TabsTrigger>
+          <TabsTrigger value="ai">AI Configuration</TabsTrigger>
         </TabsList>
 
         <TabsContent value="company" className="space-y-6">
@@ -590,6 +612,108 @@ export default function SettingsPage() {
           </Card>
 
           <SaveBar dirty={isDirty} pending={updateMutation.isPending} onReset={() => { setForm({}); setRotaHours({}) }} />
+        </TabsContent>
+
+        <TabsContent value="ai" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>AI Configuration</CardTitle>
+              <CardDescription>
+                Configure AI provider for Day in the Life document generation
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="aiProvider">AI Provider</FieldLabel>
+                  <Select
+                    value={currentForm.aiProvider || ""}
+                    onValueChange={(value) => setForm({ ...form, aiProvider: value })}
+                    disabled={updateMutation.isPending}
+                  >
+                    <SelectTrigger id="aiProvider" className="max-w-md">
+                      <SelectValue placeholder="Select provider" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
+                      <SelectItem value="openai">OpenAI (GPT)</SelectItem>
+                      <SelectItem value="gemini">Google (Gemini)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Choose which AI service to use
+                  </p>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="aiModel">Model Name</FieldLabel>
+                  <Input
+                    id="aiModel"
+                    className="max-w-md"
+                    placeholder="e.g., claude-haiku-4-5-20250929, gpt-4o-mini, gemini-2.0-flash"
+                    value={currentForm.aiModel || ""}
+                    onChange={(e) => setForm({ ...form, aiModel: e.target.value })}
+                    disabled={updateMutation.isPending}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Specific model ID for the selected provider
+                  </p>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="aiApiKey">API Key</FieldLabel>
+                  <Input
+                    id="aiApiKey"
+                    type="password"
+                    className="max-w-md font-mono"
+                    placeholder="Enter API key"
+                    value={currentForm.aiApiKey || ""}
+                    onChange={(e) => setForm({ ...form, aiApiKey: e.target.value })}
+                    disabled={updateMutation.isPending}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    API key will be stored securely. Use a password manager to store it separately.
+                  </p>
+                </Field>
+              </FieldGroup>
+
+              {testResult && (
+                <div className={`mt-4 rounded-md px-3 py-2 text-sm flex items-center gap-2 ${
+                  testResult.success
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-destructive/10 text-destructive"
+                }`}>
+                  {testResult.success ? (
+                    <CheckCircle2 className="h-4 w-4" />
+                  ) : (
+                    <XCircle className="h-4 w-4" />
+                  )}
+                  {testResult.message}
+                </div>
+              )}
+
+              <div className="mt-4 pt-4 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => testConnectionMutation.mutate()}
+                  disabled={testConnectionMutation.isPending || !currentForm.aiProvider || !currentForm.aiModel || !currentForm.aiApiKey}
+                >
+                  {testConnectionMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Testing Connection...
+                    </>
+                  ) : (
+                    "Test Connection"
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Save your changes first, then test the connection to verify it works
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <SaveBar dirty={isDirty} pending={updateMutation.isPending} onReset={() => setForm({})} />
         </TabsContent>
       </Tabs>
     </form>

@@ -27,6 +27,8 @@ public class RoleService : IRoleService
         "appraisals.view", "appraisals.add", "appraisals.edit", "appraisals.delete",
         // Onboarding
         "onboarding.view", "onboarding.add", "onboarding.edit", "onboarding.delete",
+        // Tools
+        "day_in_life.use",
         // Administration (scope is always "all" — effectively boolean)
         "settings.manage", "notifications.manage", "audit_log.view", "users.manage", "employee_statuses.manage"
     };

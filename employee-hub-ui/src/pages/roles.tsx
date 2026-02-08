@@ -81,6 +81,16 @@ const PERMISSION_TABS: PermissionTab[] = [
     ],
   },
   {
+    label: "Tools",
+    pages: [
+      {
+        page: "Day in the Life",
+        accessKeys: ["day_in_life.use"],
+        editKeys: [],
+      },
+    ],
+  },
+  {
     label: "Administration",
     pages: [
       { page: "Dashboard", accessKeys: ["dashboard.view"], editKeys: [] },

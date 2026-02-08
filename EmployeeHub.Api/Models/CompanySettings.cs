@@ -27,6 +27,11 @@ public class CompanySettings
     public string[] DefaultHiddenRotaRoles { get; set; } = Array.Empty<string>();
     public string[] DefaultHiddenRotaEmployeeStatuses { get; set; } = Array.Empty<string>();
 
+    // AI Configuration
+    public string? AiProvider { get; set; }
+    public string? AiModel { get; set; }
+    public string? AiApiKey { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

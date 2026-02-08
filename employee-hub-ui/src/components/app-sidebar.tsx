@@ -14,6 +14,7 @@ import {
   Shield,
   UserCog,
   LayoutDashboard,
+  MessageSquare,
   type LucideIcon,
 } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
@@ -62,6 +63,10 @@ const managementNav: NavItem[] = [
   { title: "Leave", url: "/leave", icon: CalendarDays, permission: "leave.view" },
 ]
 
+const toolsNav: NavItem[] = [
+  { title: "Day in the Life", url: "/day-in-life", icon: MessageSquare, permission: "day_in_life.use" },
+]
+
 const adminNav: NavItem[] = [
   { title: "Training Courses", url: "/training-courses", icon: BookOpen, permission: "training_courses.view" },
   { title: "Onboarding Items", url: "/onboarding-items", icon: ClipboardCheck, permission: "onboarding.view" },
@@ -86,6 +91,10 @@ export function AppSidebar() {
   const hasEmployeeId = !!user?.employeeId
 
   const visibleManagementNav = managementNav.filter(
+    (item) => !item.permission || hasPermission(item.permission),
+  )
+
+  const visibleToolsNav = toolsNav.filter(
     (item) => !item.permission || hasPermission(item.permission),
   )
 
@@ -133,6 +142,28 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {visibleManagementNav.map((item) => (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton
+                      isActive={location.pathname === item.url}
+                      onClick={() => navigate(item.url)}
+                      tooltip={item.title}
+                    >
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {visibleToolsNav.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Tools</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {visibleToolsNav.map((item) => (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton
                       isActive={location.pathname === item.url}
