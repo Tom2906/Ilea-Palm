@@ -25,6 +25,19 @@ builder.Services.AddScoped<ILeaveService, LeaveService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IUserManagementService, UserManagementService>();
 
+// CORS — allow frontend origin(s)
+var allowedOrigins = builder.Configuration["AllowedOrigins"]?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    ?? ["http://localhost:5173"];
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 // Controllers
 builder.Services.AddControllers();
 
@@ -75,6 +88,7 @@ builder.Services.AddRateLimiter(options =>
 var app = builder.Build();
 
 // Middleware pipeline
+app.UseCors();
 app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseMiddleware<JwtAuthMiddleware>();
 app.UseRateLimiter();
