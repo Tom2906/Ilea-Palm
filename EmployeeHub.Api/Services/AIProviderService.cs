@@ -164,18 +164,37 @@ public class AIProviderService : IAIProviderService
         {
             try
             {
-                var client = new Google.GenAI.Client(apiKey: provider.ApiKey);
-                var models = await client.ListModelsAsync();
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Add("x-goog-api-key", provider.ApiKey);
 
-                return models
-                    .Where(m => m.SupportedGenerationMethods?.Contains("generateContent") == true)
-                    .Select(m => new AIModelResponse
+                var response = await httpClient.GetAsync("https://generativelanguage.googleapis.com/v1beta/models");
+                response.EnsureSuccessStatusCode();
+
+                var json = await response.Content.ReadAsStringAsync();
+                var data = System.Text.Json.JsonDocument.Parse(json);
+
+                var models = new List<AIModelResponse>();
+                if (data.RootElement.TryGetProperty("models", out var modelsArray))
+                {
+                    foreach (var model in modelsArray.EnumerateArray())
                     {
-                        Id = m.Name?.Replace("models/", "") ?? "",
-                        Name = m.DisplayName ?? m.Name ?? "",
-                        Description = m.Description
-                    })
-                    .ToList();
+                        var name = model.TryGetProperty("name", out var n) ? n.GetString() : null;
+                        var displayName = model.TryGetProperty("displayName", out var dn) ? dn.GetString() : null;
+                        var description = model.TryGetProperty("description", out var d) ? d.GetString() : null;
+
+                        if (name != null)
+                        {
+                            models.Add(new AIModelResponse
+                            {
+                                Id = name.Replace("models/", ""),
+                                Name = displayName ?? name.Replace("models/", ""),
+                                Description = description
+                            });
+                        }
+                    }
+                }
+
+                return models.Where(m => m.Id.Contains("gemini")).ToList();
             }
             catch (Exception ex)
             {
