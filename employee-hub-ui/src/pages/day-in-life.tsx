@@ -5,6 +5,7 @@ import type { ChatMessage } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Send, Copy, RotateCcw, Loader2 } from "lucide-react"
+import ReactMarkdown from "react-markdown"
 
 export default function DayInLifePage() {
   const { hasPermission } = useAuth()
@@ -93,7 +94,13 @@ export default function DayInLifePage() {
 
           try {
             const parsed = JSON.parse(data)
-            if (parsed.content) {
+            if (parsed.error) {
+              // Handle error from backend
+              setError(parsed.error)
+              // Remove placeholder assistant message
+              setMessages((prev) => prev.slice(0, -1))
+              break
+            } else if (parsed.content) {
               assistantContent += parsed.content
               const content = assistantContent
               setMessages((prev) => {
@@ -211,13 +218,19 @@ export default function DayInLifePage() {
             className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
-              className={`max-w-[85%] rounded-lg px-4 py-2.5 text-sm whitespace-pre-wrap ${
+              className={`max-w-[85%] rounded-lg px-4 py-2.5 text-sm ${
                 msg.role === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted"
+                  ? "bg-primary text-primary-foreground whitespace-pre-wrap"
+                  : "bg-muted prose prose-sm max-w-none"
               }`}
             >
-              {msg.content || (
+              {msg.content ? (
+                msg.role === "assistant" ? (
+                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                ) : (
+                  msg.content
+                )
+              ) : (
                 <span className="flex items-center gap-2 text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Thinking...
@@ -242,16 +255,16 @@ export default function DayInLifePage() {
           onKeyDown={handleKeyDown}
           placeholder={streaming ? "Waiting for response..." : "Type your response..."}
           disabled={streaming}
-          className="min-h-[44px] max-h-[120px] resize-none"
-          rows={1}
+          className="min-h-[100px] max-h-[300px] resize-none text-base"
+          rows={3}
         />
         <Button
           onClick={handleSend}
           disabled={!input.trim() || streaming}
           size="icon"
-          className="shrink-0 h-[44px] w-[44px]"
+          className="shrink-0 h-[60px] w-[60px]"
         >
-          <Send className="h-4 w-4" />
+          <Send className="h-5 w-5" />
         </Button>
       </div>
     </div>

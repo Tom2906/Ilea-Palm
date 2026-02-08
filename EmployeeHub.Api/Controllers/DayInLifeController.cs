@@ -129,18 +129,36 @@ public class DayInLifeController : ControllerBase
             ModelId = aiModel
         };
 
-        await foreach (var update in chatClient.GetStreamingResponseAsync(messages, options, HttpContext.RequestAborted))
+        try
         {
-            if (!string.IsNullOrEmpty(update.Text))
+            await foreach (var update in chatClient.GetStreamingResponseAsync(messages, options, HttpContext.RequestAborted))
             {
-                var json = JsonSerializer.Serialize(new { content = update.Text });
-                await Response.WriteAsync($"data: {json}\n\n", HttpContext.RequestAborted);
-                await Response.Body.FlushAsync(HttpContext.RequestAborted);
+                if (!string.IsNullOrEmpty(update.Text))
+                {
+                    var json = JsonSerializer.Serialize(new { content = update.Text });
+                    await Response.WriteAsync($"data: {json}\n\n", HttpContext.RequestAborted);
+                    await Response.Body.FlushAsync(HttpContext.RequestAborted);
+                }
             }
-        }
 
-        await Response.WriteAsync("data: [DONE]\n\n", HttpContext.RequestAborted);
-        await Response.Body.FlushAsync(HttpContext.RequestAborted);
+            await Response.WriteAsync("data: [DONE]\n\n", HttpContext.RequestAborted);
+            await Response.Body.FlushAsync(HttpContext.RequestAborted);
+        }
+        catch (Exception ex)
+        {
+            var errorMessage = ex.Message.Contains("overloaded")
+                ? "The AI model is currently overloaded. Please try again in a moment."
+                : ex.Message.Contains("rate limit")
+                ? "Rate limit reached. Please wait a moment before trying again."
+                : ex.Message.Contains("quota")
+                ? "API quota exceeded. Please check your API key settings or try a different provider."
+                : $"AI request failed: {ex.Message}";
+
+            var errorJson = JsonSerializer.Serialize(new { error = errorMessage });
+            await Response.WriteAsync($"data: {errorJson}\n\n", HttpContext.RequestAborted);
+            await Response.WriteAsync("data: [DONE]\n\n", HttpContext.RequestAborted);
+            await Response.Body.FlushAsync(HttpContext.RequestAborted);
+        }
     }
 
     [HttpPost("test")]
