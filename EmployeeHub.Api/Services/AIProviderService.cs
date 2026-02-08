@@ -157,8 +157,34 @@ public class AIProviderService : IAIProviderService
         var provider = await GetByIdAsync(providerId);
         if (provider == null) throw new InvalidOperationException("Provider not found");
 
-        // Return curated list of models per provider
-        return provider.Provider.ToLowerInvariant() switch
+        var providerType = provider.Provider.ToLowerInvariant();
+
+        // Fetch real models from provider APIs
+        if (providerType == "gemini")
+        {
+            try
+            {
+                var client = new Google.GenAI.Client(apiKey: provider.ApiKey);
+                var models = await client.ListModelsAsync();
+
+                return models
+                    .Where(m => m.SupportedGenerationMethods?.Contains("generateContent") == true)
+                    .Select(m => new AIModelResponse
+                    {
+                        Id = m.Name?.Replace("models/", "") ?? "",
+                        Name = m.DisplayName ?? m.Name ?? "",
+                        Description = m.Description
+                    })
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Failed to fetch Gemini models: {ex.Message}", ex);
+            }
+        }
+
+        // Fallback for other providers (hardcoded for now)
+        return providerType switch
         {
             "anthropic" => new List<AIModelResponse>
             {
@@ -171,12 +197,6 @@ public class AIProviderService : IAIProviderService
                 new() { Id = "gpt-4o", Name = "GPT-4o", Description = "Most capable model" },
                 new() { Id = "gpt-4o-mini", Name = "GPT-4o Mini", Description = "Fast and affordable" },
                 new() { Id = "gpt-4-turbo", Name = "GPT-4 Turbo", Description = "Previous generation" }
-            },
-            "gemini" => new List<AIModelResponse>
-            {
-                new() { Id = "gemini-2.0-flash", Name = "Gemini 2.0 Flash", Description = "Latest and fastest" },
-                new() { Id = "gemini-1.5-pro", Name = "Gemini 1.5 Pro", Description = "Most capable" },
-                new() { Id = "gemini-1.5-flash", Name = "Gemini 1.5 Flash", Description = "Fast and affordable" }
             },
             _ => new List<AIModelResponse>()
         };
