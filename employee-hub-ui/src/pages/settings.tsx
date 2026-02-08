@@ -147,6 +147,9 @@ export default function SettingsPage() {
     aiProvider: form.aiProvider ?? settings?.aiProvider ?? "",
     aiModel: form.aiModel ?? settings?.aiModel ?? "",
     aiApiKey: form.aiApiKey ?? settings?.aiApiKey ?? "",
+    anthropicApiKey: form.anthropicApiKey ?? settings?.anthropicApiKey ?? "",
+    openaiApiKey: form.openaiApiKey ?? settings?.openaiApiKey ?? "",
+    geminiApiKey: form.geminiApiKey ?? settings?.geminiApiKey ?? "",
     dayInLifeSystemPrompt: form.dayInLifeSystemPrompt ?? settings?.dayInLifeSystemPrompt ?? DEFAULT_DAY_IN_LIFE_PROMPT,
   }
 
@@ -251,6 +254,9 @@ export default function SettingsPage() {
           aiProvider: currentForm.aiProvider || null,
           aiModel: currentForm.aiModel || null,
           aiApiKey: currentForm.aiApiKey || null,
+          anthropicApiKey: currentForm.anthropicApiKey || null,
+          openaiApiKey: currentForm.openaiApiKey || null,
+          geminiApiKey: currentForm.geminiApiKey || null,
           dayInLifeSystemPrompt: currentForm.dayInLifeSystemPrompt || null,
         })
       } else if (rotaDirty) {
@@ -710,18 +716,48 @@ export default function SettingsPage() {
                   </p>
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="aiApiKey">API Key</FieldLabel>
+                  <FieldLabel htmlFor="anthropicApiKey">Anthropic API Key</FieldLabel>
                   <Input
-                    id="aiApiKey"
+                    id="anthropicApiKey"
                     type="password"
                     className="max-w-md font-mono"
-                    placeholder="Enter API key"
-                    value={currentForm.aiApiKey || ""}
-                    onChange={(e) => setForm({ ...form, aiApiKey: e.target.value })}
+                    placeholder="Enter Anthropic (Claude) API key"
+                    value={currentForm.anthropicApiKey || ""}
+                    onChange={(e) => setForm({ ...form, anthropicApiKey: e.target.value })}
                     disabled={updateMutation.isPending}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    API key will be stored securely. Use a password manager to store it separately.
+                    For use when Anthropic is selected as provider
+                  </p>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="openaiApiKey">OpenAI API Key</FieldLabel>
+                  <Input
+                    id="openaiApiKey"
+                    type="password"
+                    className="max-w-md font-mono"
+                    placeholder="Enter OpenAI (GPT) API key"
+                    value={currentForm.openaiApiKey || ""}
+                    onChange={(e) => setForm({ ...form, openaiApiKey: e.target.value })}
+                    disabled={updateMutation.isPending}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    For use when OpenAI is selected as provider
+                  </p>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="geminiApiKey">Google Gemini API Key</FieldLabel>
+                  <Input
+                    id="geminiApiKey"
+                    type="password"
+                    className="max-w-md font-mono"
+                    placeholder="Enter Google (Gemini) API key"
+                    value={currentForm.geminiApiKey || ""}
+                    onChange={(e) => setForm({ ...form, geminiApiKey: e.target.value })}
+                    disabled={updateMutation.isPending}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    For use when Gemini is selected as provider
                   </p>
                 </Field>
                 <Field>

@@ -28,5 +28,8 @@ public class UpdateCompanySettingsRequest
     public string? AiProvider { get; set; }
     public string? AiModel { get; set; }
     public string? AiApiKey { get; set; }
+    public string? AnthropicApiKey { get; set; }
+    public string? OpenaiApiKey { get; set; }
+    public string? GeminiApiKey { get; set; }
     public string? DayInLifeSystemPrompt { get; set; }
 }

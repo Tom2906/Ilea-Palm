@@ -79,8 +79,16 @@ public class DayInLifeController : ControllerBase
         var companySettings = await _settings.GetAsync();
         var aiProvider = companySettings.AiProvider?.ToLowerInvariant();
         var aiModel = companySettings.AiModel;
-        var aiApiKey = companySettings.AiApiKey;
         var systemPrompt = companySettings.DayInLifeSystemPrompt ?? SystemPrompt;
+
+        // Get the appropriate API key based on provider
+        var aiApiKey = aiProvider switch
+        {
+            "anthropic" => companySettings.AnthropicApiKey,
+            "openai" => companySettings.OpenaiApiKey,
+            "gemini" => companySettings.GeminiApiKey,
+            _ => null
+        };
 
         if (string.IsNullOrEmpty(aiApiKey) || string.IsNullOrEmpty(aiProvider) || string.IsNullOrEmpty(aiModel))
         {
@@ -172,7 +180,15 @@ public class DayInLifeController : ControllerBase
         var companySettings = await _settings.GetAsync();
         var aiProvider = companySettings.AiProvider?.ToLowerInvariant();
         var aiModel = companySettings.AiModel;
-        var aiApiKey = companySettings.AiApiKey;
+
+        // Get the appropriate API key based on provider
+        var aiApiKey = aiProvider switch
+        {
+            "anthropic" => companySettings.AnthropicApiKey,
+            "openai" => companySettings.OpenaiApiKey,
+            "gemini" => companySettings.GeminiApiKey,
+            _ => null
+        };
 
         if (string.IsNullOrEmpty(aiApiKey) || string.IsNullOrEmpty(aiProvider) || string.IsNullOrEmpty(aiModel))
         {

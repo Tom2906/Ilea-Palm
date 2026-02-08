@@ -30,7 +30,11 @@ public class CompanySettings
     // AI Configuration
     public string? AiProvider { get; set; }
     public string? AiModel { get; set; }
+    [Obsolete("Use provider-specific API keys instead")]
     public string? AiApiKey { get; set; }
+    public string? AnthropicApiKey { get; set; }
+    public string? OpenaiApiKey { get; set; }
+    public string? GeminiApiKey { get; set; }
     public string? DayInLifeSystemPrompt { get; set; }
 
     public DateTime CreatedAt { get; set; }
