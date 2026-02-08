@@ -40,7 +40,7 @@ class ApiClient {
       headers,
     })
 
-    if (response.status === 401) {
+    if (response.status === 401 && this.token) {
       this.clearToken()
       window.location.href = "/login"
       throw new Error("Session expired")
