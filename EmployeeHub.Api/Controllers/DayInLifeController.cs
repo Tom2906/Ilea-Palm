@@ -80,6 +80,7 @@ public class DayInLifeController : ControllerBase
         var aiProvider = companySettings.AiProvider?.ToLowerInvariant();
         var aiModel = companySettings.AiModel;
         var aiApiKey = companySettings.AiApiKey;
+        var systemPrompt = companySettings.DayInLifeSystemPrompt ?? SystemPrompt;
 
         if (string.IsNullOrEmpty(aiApiKey) || string.IsNullOrEmpty(aiProvider) || string.IsNullOrEmpty(aiModel))
         {
@@ -110,7 +111,7 @@ public class DayInLifeController : ControllerBase
         // Build message list
         var messages = new List<ChatMessage>
         {
-            new(ChatRole.System, SystemPrompt)
+            new(ChatRole.System, systemPrompt)
         };
 
         foreach (var msg in request.Messages)

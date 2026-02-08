@@ -316,6 +316,7 @@ export interface CompanySettings {
   aiProvider: string | null
   aiModel: string | null
   aiApiKey: string | null
+  dayInLifeSystemPrompt: string | null
   createdAt: string
   updatedAt: string
 }

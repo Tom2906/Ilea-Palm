@@ -24,7 +24,7 @@ public class CompanySettingsService : ICompanySettingsService
                    default_hidden_roles, default_hidden_employee_statuses,
                    default_hidden_rota_roles, default_hidden_rota_employee_statuses,
                    appraisal_reviews_back, appraisal_reviews_forward,
-                   ai_provider, ai_model, ai_api_key,
+                   ai_provider, ai_model, ai_api_key, day_in_life_system_prompt,
                    created_at, updated_at
             FROM company_settings
             LIMIT 1", conn);
@@ -64,6 +64,7 @@ public class CompanySettingsService : ICompanySettingsService
                 ai_provider = COALESCE(@aiProvider, ai_provider),
                 ai_model = COALESCE(@aiModel, ai_model),
                 ai_api_key = COALESCE(@aiApiKey, ai_api_key),
+                day_in_life_system_prompt = COALESCE(@dayInLifePrompt, day_in_life_system_prompt),
                 updated_at = NOW()
             RETURNING id, company_name, default_expiry_warning_days, default_notification_days_before,
                       default_reminder_frequency_days, default_notify_employee, default_notify_admin,
@@ -71,7 +72,7 @@ public class CompanySettingsService : ICompanySettingsService
                       default_hidden_roles, default_hidden_employee_statuses,
                       default_hidden_rota_roles, default_hidden_rota_employee_statuses,
                       appraisal_reviews_back, appraisal_reviews_forward,
-                      ai_provider, ai_model, ai_api_key,
+                      ai_provider, ai_model, ai_api_key, day_in_life_system_prompt,
                       created_at, updated_at", conn);
 
         cmd.Parameters.AddWithValue("companyName", (object?)request.CompanyName ?? DBNull.Value);
@@ -92,6 +93,7 @@ public class CompanySettingsService : ICompanySettingsService
         cmd.Parameters.AddWithValue("aiProvider", (object?)request.AiProvider ?? DBNull.Value);
         cmd.Parameters.AddWithValue("aiModel", (object?)request.AiModel ?? DBNull.Value);
         cmd.Parameters.AddWithValue("aiApiKey", (object?)request.AiApiKey ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("dayInLifePrompt", (object?)request.DayInLifeSystemPrompt ?? DBNull.Value);
 
         await using var reader = await cmd.ExecuteReaderAsync();
         await reader.ReadAsync();
@@ -126,8 +128,9 @@ public class CompanySettingsService : ICompanySettingsService
             AiProvider = reader.IsDBNull(16) ? null : reader.GetString(16),
             AiModel = reader.IsDBNull(17) ? null : reader.GetString(17),
             AiApiKey = reader.IsDBNull(18) ? null : reader.GetString(18),
-            CreatedAt = reader.GetDateTime(19),
-            UpdatedAt = reader.GetDateTime(20)
+            DayInLifeSystemPrompt = reader.IsDBNull(19) ? null : reader.GetString(19),
+            CreatedAt = reader.GetDateTime(20),
+            UpdatedAt = reader.GetDateTime(21)
         };
     }
 }

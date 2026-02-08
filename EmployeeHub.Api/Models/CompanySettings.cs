@@ -31,6 +31,7 @@ public class CompanySettings
     public string? AiProvider { get; set; }
     public string? AiModel { get; set; }
     public string? AiApiKey { get; set; }
+    public string? DayInLifeSystemPrompt { get; set; }
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

@@ -4,6 +4,7 @@ import { api } from "@/lib/api"
 import type { CompanySettings, Employee, EmployeeStatus, MonthlyHours } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
@@ -98,6 +99,7 @@ export default function SettingsPage() {
     aiProvider: form.aiProvider ?? settings?.aiProvider ?? "",
     aiModel: form.aiModel ?? settings?.aiModel ?? "",
     aiApiKey: form.aiApiKey ?? settings?.aiApiKey ?? "",
+    dayInLifeSystemPrompt: form.dayInLifeSystemPrompt ?? settings?.dayInLifeSystemPrompt ?? "",
   }
 
   const toggleHiddenRole = (role: string) => {
@@ -201,6 +203,7 @@ export default function SettingsPage() {
           aiProvider: currentForm.aiProvider || null,
           aiModel: currentForm.aiModel || null,
           aiApiKey: currentForm.aiApiKey || null,
+          dayInLifeSystemPrompt: currentForm.dayInLifeSystemPrompt || null,
         })
       } else if (rotaDirty) {
         // Only hours changed, show success manually
@@ -671,6 +674,31 @@ export default function SettingsPage() {
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     API key will be stored securely. Use a password manager to store it separately.
+                  </p>
+                </Field>
+                <Field>
+                  <div className="flex items-center justify-between">
+                    <FieldLabel htmlFor="dayInLifePrompt">Day in the Life System Prompt</FieldLabel>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setForm({ ...form, dayInLifeSystemPrompt: "" })}
+                      disabled={updateMutation.isPending}
+                    >
+                      Reset to Default
+                    </Button>
+                  </div>
+                  <Textarea
+                    id="dayInLifePrompt"
+                    className="font-mono text-xs min-h-[300px]"
+                    placeholder="Leave empty to use default prompt"
+                    value={currentForm.dayInLifeSystemPrompt || ""}
+                    onChange={(e) => setForm({ ...form, dayInLifeSystemPrompt: e.target.value })}
+                    disabled={updateMutation.isPending}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Customize the AI behavior for Day in the Life documents. Leave empty to use the default prompt.
                   </p>
                 </Field>
               </FieldGroup>
