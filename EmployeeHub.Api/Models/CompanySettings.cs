@@ -30,8 +30,7 @@ public class CompanySettings
     // AI Configuration
     public string? AiProvider { get; set; }
     public string? AiModel { get; set; }
-    [Obsolete("Use provider-specific API keys instead")]
-    public string? AiApiKey { get; set; }
+    public string? AiApiKey { get; set; } // Legacy - use provider-specific keys instead
     public string? AnthropicApiKey { get; set; }
     public string? OpenaiApiKey { get; set; }
     public string? GeminiApiKey { get; set; }
