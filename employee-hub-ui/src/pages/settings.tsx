@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Pencil, Trash2 } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
+import { ListRow } from "@/components/list-row"
 
 const DEFAULT_DAY_IN_LIFE_PROMPT = `You are a professional writer assisting residential care workers in transforming their rough notes
 into polished "Day in the Life" observations for children and young people. These observations
@@ -846,8 +847,8 @@ export default function SettingsPage() {
             </div>
             <Dialog open={isCreateProviderOpen} onOpenChange={setIsCreateProviderOpen}>
               <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-1" />
                   Add Provider
                 </Button>
               </DialogTrigger>
@@ -902,107 +903,96 @@ export default function SettingsPage() {
             </Dialog>
           </div>
 
-          <div className="grid gap-4">
+          <div className="space-y-2">
             {aiProviders?.map((provider) => (
-              <Card key={provider.id}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <CardTitle className="text-lg">{provider.name}</CardTitle>
-                      <Badge variant={provider.isActive ? "default" : "secondary"}>
-                        {provider.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                      <span className="text-sm text-muted-foreground">
-                        {getProviderLabel(provider.provider)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Dialog
-                        open={editingProvider?.id === provider.id}
-                        onOpenChange={(open) => {
-                          if (!open) {
-                            setEditingProvider(null)
-                            setProviderFormData({ provider: "anthropic", name: "", apiKey: "" })
-                          }
-                        }}
-                      >
-                        <DialogTrigger asChild>
-                          <Button variant="ghost" size="sm" onClick={() => handleEditProvider(provider)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Edit Provider</DialogTitle>
-                          </DialogHeader>
-                          <FieldGroup>
-                            <Field>
-                              <FieldLabel>Provider</FieldLabel>
-                              <Input value={getProviderLabel(providerFormData.provider)} disabled />
-                            </Field>
-                            <Field>
-                              <FieldLabel>Name</FieldLabel>
-                              <Input
-                                value={providerFormData.name}
-                                onChange={(e) => setProviderFormData({ ...providerFormData, name: e.target.value })}
-                              />
-                            </Field>
-                            <Field>
-                              <FieldLabel>API Key</FieldLabel>
-                              <Input
-                                type="password"
-                                placeholder="Leave empty to keep existing key"
-                                value={providerFormData.apiKey}
-                                onChange={(e) => setProviderFormData({ ...providerFormData, apiKey: e.target.value })}
-                              />
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Only enter a new key if you want to update it
-                              </p>
-                            </Field>
-                          </FieldGroup>
-                          <div className="flex justify-end gap-2 mt-4">
-                            <Button
-                              variant="outline"
-                              onClick={() => {
-                                setEditingProvider(null)
-                                setProviderFormData({ provider: "anthropic", name: "", apiKey: "" })
-                              }}
-                            >
-                              Cancel
-                            </Button>
-                            <Button onClick={handleUpdateProvider} disabled={updateProviderMutation.isPending}>
-                              {updateProviderMutation.isPending ? "Updating..." : "Update"}
-                            </Button>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
+              <ListRow key={provider.id}>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{provider.name}</p>
+                  <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+                    <span>{getProviderLabel(provider.provider)}</span>
+                    <span>Created {new Date(provider.createdAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                <Badge variant={provider.isActive ? "default" : "secondary"} className="shrink-0">
+                  {provider.isActive ? "Active" : "Inactive"}
+                </Badge>
+                <Dialog
+                  open={editingProvider?.id === provider.id}
+                  onOpenChange={(open) => {
+                    if (!open) {
+                      setEditingProvider(null)
+                      setProviderFormData({ provider: "anthropic", name: "", apiKey: "" })
+                    }
+                  }}
+                >
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="shrink-0" onClick={() => handleEditProvider(provider)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Edit Provider</DialogTitle>
+                    </DialogHeader>
+                    <FieldGroup>
+                      <Field>
+                        <FieldLabel>Provider</FieldLabel>
+                        <Input value={getProviderLabel(providerFormData.provider)} disabled />
+                      </Field>
+                      <Field>
+                        <FieldLabel>Name</FieldLabel>
+                        <Input
+                          value={providerFormData.name}
+                          onChange={(e) => setProviderFormData({ ...providerFormData, name: e.target.value })}
+                        />
+                      </Field>
+                      <Field>
+                        <FieldLabel>API Key</FieldLabel>
+                        <Input
+                          type="password"
+                          placeholder="Leave empty to keep existing key"
+                          value={providerFormData.apiKey}
+                          onChange={(e) => setProviderFormData({ ...providerFormData, apiKey: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Only enter a new key if you want to update it
+                        </p>
+                      </Field>
+                    </FieldGroup>
+                    <div className="flex justify-end gap-2 mt-4">
                       <Button
-                        variant="ghost"
-                        size="sm"
+                        variant="outline"
                         onClick={() => {
-                          if (confirm(`Delete provider "${provider.name}"?`)) {
-                            deleteProviderMutation.mutate(provider.id)
-                          }
+                          setEditingProvider(null)
+                          setProviderFormData({ provider: "anthropic", name: "", apiKey: "" })
                         }}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        Cancel
+                      </Button>
+                      <Button onClick={handleUpdateProvider} disabled={updateProviderMutation.isPending}>
+                        {updateProviderMutation.isPending ? "Updating..." : "Update"}
                       </Button>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-sm text-muted-foreground">
-                    Created {new Date(provider.createdAt).toLocaleDateString()}
-                  </div>
-                </CardContent>
-              </Card>
+                  </DialogContent>
+                </Dialog>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => {
+                    if (confirm(`Delete provider "${provider.name}"?`)) {
+                      deleteProviderMutation.mutate(provider.id)
+                    }
+                  }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </ListRow>
             ))}
             {aiProviders?.length === 0 && (
-              <Card>
-                <CardContent className="py-8 text-center text-muted-foreground">
-                  No AI providers configured. Click "Add Provider" to get started.
-                </CardContent>
-              </Card>
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                No AI providers configured. Click "Add Provider" to get started.
+              </div>
             )}
           </div>
         </TabsContent>
