@@ -28,6 +28,7 @@ public class DayInLifeController : ControllerBase
         - Write in third person, natural voice (as if the adult wrote it themselves, not robotic)
         - Use reflective language: "appeared", "seemed", "demonstrated"
         - Focus on relationship quality, not just events
+        - NO MARKDOWN FORMATTING: Do not use bold (**), italics (_), headers (#), or any other markdown. Plain text only.
 
         **When the adult provides basic information, intelligently expand it by:**
         1. Adding observational detail about how the young person presented
@@ -57,9 +58,9 @@ public class DayInLifeController : ControllerBase
         narrative). Let them know you'll transform it into a professional observation.
 
         **After receiving their input:** Produce a complete, polished narrative matching professional
-        care observation standards. Mark it with "--- FINAL DOCUMENT ---" at the top. If critical
-        information is missing (e.g., no adult names, no sense of mood), ask one focused question
-        before generating the final document.
+        care observation standards. Output plain text only with no markdown formatting whatsoever.
+        Mark it with "--- FINAL DOCUMENT ---" at the top. If critical information is missing
+        (e.g., no adult names, no sense of mood), ask one focused question before generating the final document.
         """;
 
     public DayInLifeController(ICompanySettingsService settings)
