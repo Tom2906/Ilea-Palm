@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -6,14 +7,16 @@ interface StatCardProps {
   value: string
   subtitle: string
   icon: LucideIcon
+  href?: string
   className?: string
 }
 
-export function StatCard({ label, value, subtitle, icon: Icon, className }: StatCardProps) {
-  return (
+export function StatCard({ label, value, subtitle, icon: Icon, href, className }: StatCardProps) {
+  const card = (
     <div
       className={cn(
         "rounded-xl border bg-gradient-to-r from-muted/50 to-white p-4 hover:shadow-sm transition-all",
+        href && "cursor-pointer hover:border-foreground/20",
         className
       )}
     >
@@ -29,4 +32,7 @@ export function StatCard({ label, value, subtitle, icon: Icon, className }: Stat
       <p className="text-xs text-muted-foreground mt-2">{subtitle}</p>
     </div>
   )
+
+  if (href) return <Link to={href}>{card}</Link>
+  return card
 }

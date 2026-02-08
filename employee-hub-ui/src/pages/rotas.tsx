@@ -9,6 +9,7 @@ import { FilterBar } from "@/components/filter-bar"
 import { ShiftEditorModal } from "@/components/rotas/shift-editor-modal"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { shiftColorMap } from "@/lib/shift-colors"
 
 interface DayCol {
   day: number
@@ -18,16 +19,6 @@ interface DayCol {
 }
 
 const dayLabels = ["SU", "M", "T", "W", "TH", "F", "S"]
-
-const shiftColorMap: Record<string, { cell: string; legend: string; border: string }> = {
-  A:   { cell: "bg-blue-100 border border-blue-200 text-blue-800",     legend: "bg-blue-100",   border: "border border-blue-200" },
-  D:   { cell: "bg-amber-100 border border-amber-200 text-amber-800",  legend: "bg-amber-100",  border: "border border-amber-200" },
-  DS:  { cell: "bg-purple-100 border border-purple-200 text-purple-800", legend: "bg-purple-100", border: "border border-purple-200" },
-  S:   { cell: "bg-indigo-100 border border-indigo-200 text-indigo-800", legend: "bg-indigo-100", border: "border border-indigo-200" },
-  E:   { cell: "bg-green-100 border border-green-200 text-green-800",  legend: "bg-green-100",  border: "border border-green-200" },
-  L:   { cell: "bg-red-100 border border-red-200 text-red-800",        legend: "bg-red-100",    border: "border border-red-200" },
-  RDO: { cell: "bg-gray-200 border border-gray-300 text-gray-600",     legend: "bg-gray-200",   border: "border border-gray-300" },
-}
 
 function getDayColumns(year: number, month: number, daysInMonth: number): Column<DayCol>[] {
   const cols: Column<DayCol>[] = []

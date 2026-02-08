@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useEffect, useRef } from "react"
+import { useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
@@ -23,6 +24,8 @@ const groupByOptions: GroupByOption[] = [
 export default function MyTrainingPage() {
   const { user } = useAuth()
   const employeeId = user?.employeeId
+  const [searchParams] = useSearchParams()
+  const appliedFilter = useRef(false)
   const [search, setSearch] = useState("")
   const [hidden, setHidden] = useState<Set<string>>(new Set())
   const [recordOpen, setRecordOpen] = useState(false)
@@ -59,6 +62,23 @@ export default function MyTrainingPage() {
     const unique = [...new Set(myTraining.map((s) => s.status))]
     return unique.sort()
   }, [myTraining])
+
+  // Apply URL ?status= and ?category= filters once when data loads
+  useEffect(() => {
+    const filterStatus = searchParams.get("status")
+    const filterCategory = searchParams.get("category")
+    if ((filterStatus || filterCategory) && statuses.length > 0 && !appliedFilter.current) {
+      appliedFilter.current = true
+      const toHide = new Set<string>()
+      if (filterStatus) {
+        statuses.filter((s) => s !== filterStatus).forEach((s) => toHide.add(`status:${s}`))
+      }
+      if (filterCategory) {
+        categoryOrder.filter((c) => c !== filterCategory).forEach((c) => toHide.add(`cat:${c}`))
+      }
+      setHidden(toHide)
+    }
+  }, [searchParams, statuses])
 
   const filterGroups = useMemo(() => [
     { label: "Status", items: statuses.map((s) => ({ id: `status:${s}`, label: s })) },

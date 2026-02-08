@@ -161,8 +161,6 @@ export function AppraisalModal({
         ? "Schedule Appraisal"
         : "New Appraisal"
 
-  const isCreate = mode !== "edit"
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>

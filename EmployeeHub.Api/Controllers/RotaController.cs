@@ -20,12 +20,20 @@ public class RotaController : ControllerBase
     public async Task<IActionResult> GetMonth([FromQuery] int year, [FromQuery] int month)
     {
         if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("rotas.view")) return StatusCode(403);
 
         if (month < 1 || month > 12 || year < 2000 || year > 2100)
             return BadRequest(new { error = "Invalid year or month" });
 
         var result = await _rotaService.GetMonthAsync(year, month);
+
+        // Self-service: users without rotas.view can only see their own shifts
+        if (!User.HasPermission("rotas.view"))
+        {
+            var myEmpId = User.GetEmployeeId();
+            if (myEmpId == null) return StatusCode(403);
+            result.Staff = result.Staff.Where(s => s.EmployeeId == myEmpId).ToList();
+        }
+
         return Ok(result);
     }
 

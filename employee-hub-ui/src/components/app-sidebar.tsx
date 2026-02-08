@@ -9,7 +9,6 @@ import {
   FileText,
   Grid3X3,
   Tag,
-  User,
   UserCheck,
   Settings,
   Shield,

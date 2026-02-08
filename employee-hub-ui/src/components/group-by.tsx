@@ -18,8 +18,6 @@ interface GroupByProps {
 }
 
 export function GroupBy({ options, value, onChange }: GroupByProps) {
-  const activeLabel = options.find((o) => o.id === value)?.label
-
   return (
     <div className="shrink-0">
       <Popover>

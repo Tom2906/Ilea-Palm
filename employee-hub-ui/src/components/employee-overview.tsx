@@ -109,7 +109,7 @@ export function EmployeeOverview({
               <p className="text-sm text-muted-foreground py-8 text-center">No training data</p>
             ) : (
               <ChartContainer config={trainingPieConfig} className="mx-auto aspect-square max-h-[220px]">
-                <PieChart>
+                <PieChart key={employee.id}>
                   {chartGradientDefs()}
                   <ChartTooltip content={<ChartTooltipContent hideLabel />} />
                   <Pie
@@ -163,7 +163,7 @@ export function EmployeeOverview({
           </div>
           <div className="px-5 pb-5">
             <ChartContainer config={hoursChartConfig} className="h-[220px] w-full">
-              <BarChart data={mockWeeklyHours} margin={{ top: 8, right: 0, left: -20, bottom: 0 }}>
+              <BarChart key={employee.id} data={mockWeeklyHours} margin={{ top: 8, right: 0, left: -20, bottom: 0 }}>
                 {chartGradientDefs()}
                 <XAxis dataKey="day" tickLine={false} axisLine={false} fontSize={12} />
                 <YAxis tickLine={false} axisLine={false} fontSize={12} />

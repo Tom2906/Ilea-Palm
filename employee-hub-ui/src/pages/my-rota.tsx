@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react"
+import { useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
@@ -7,16 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-const shiftColorMap: Record<string, string> = {
-  A:   "bg-blue-100 border-blue-200 text-blue-800",
-  D:   "bg-amber-100 border-amber-200 text-amber-800",
-  DS:  "bg-purple-100 border-purple-200 text-purple-800",
-  S:   "bg-indigo-100 border-indigo-200 text-indigo-800",
-  E:   "bg-green-100 border-green-200 text-green-800",
-  L:   "bg-red-100 border-red-200 text-red-800",
-  RDO: "bg-gray-200 border-gray-300 text-gray-600",
-}
+import { shiftCellColorMap } from "@/lib/shift-colors"
 
 const dayHeaders = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
@@ -64,9 +56,16 @@ export default function MyRotaPage() {
   const { user } = useAuth()
   const employeeId = user?.employeeId
 
+  const [searchParams] = useSearchParams()
   const now = new Date()
-  const [year, setYear] = useState(now.getFullYear())
-  const [month, setMonth] = useState(now.getMonth() + 1)
+  const [year, setYear] = useState(() => {
+    const p = searchParams.get("year")
+    return p ? Number(p) : now.getFullYear()
+  })
+  const [month, setMonth] = useState(() => {
+    const p = searchParams.get("month")
+    return p ? Number(p) : now.getMonth() + 1
+  })
 
   const { data: rota, isLoading } = useQuery({
     queryKey: ["rota", year, month],
@@ -167,7 +166,7 @@ export default function MyRotaPage() {
                 const isLeave = myData?.leaveDates?.includes(cell.date)
                 const isToday = cell.date === todayStr
                 const isWeekend = cell.dayOfWeek >= 5
-                const shiftColor = shift ? shiftColorMap[shift.shiftTypeCode] : undefined
+                const shiftColor = shift ? shiftCellColorMap[shift.shiftTypeCode] : undefined
 
                 return (
                   <div
@@ -250,7 +249,7 @@ export default function MyRotaPage() {
                 <div key={st.code} className="flex items-center gap-1.5 text-xs">
                   <div className={cn(
                     "h-3 w-3 rounded-sm border",
-                    shiftColorMap[st.code] ?? "bg-gray-100 border-gray-200",
+                    shiftCellColorMap[st.code] ?? "bg-gray-100 border-gray-200",
                   )} />
                   <span className="text-muted-foreground">{st.code} - {st.name} ({st.defaultHours}h)</span>
                 </div>
