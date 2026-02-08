@@ -181,7 +181,7 @@ export default function MyDashboardPage() {
   const expiringTraining = myTraining.filter(
     (s) => s.status === "Expiring Soon",
   )
-  const _notCompleted = myTraining.filter((s) => s.status === "Not Completed")
+
 
   const trainingPct =
     myTraining.length > 0
