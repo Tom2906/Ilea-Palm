@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithMicrosoft = msalInstance
     ? async () => {
-        await msalInstance.loginRedirect(loginRequest)
+        await msalInstance!.loginRedirect(loginRequest)
       }
     : null
 
