@@ -1,0 +1,17 @@
+**/node_modules
+**/bin
+**/obj
+**/.git
+**/.gitignore
+**/.vs
+**/.vscode
+**/dist
+**/reports
+**/work
+**/*.md
+**/nul
+**/tracked.tmp
+**/.env
+docker-compose.yml
+Dockerfile
+.dockerignore

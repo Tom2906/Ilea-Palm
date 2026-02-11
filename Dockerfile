@@ -10,7 +10,7 @@ COPY employee-hub-ui/package.json employee-hub-ui/package-lock.json ./
 RUN npm install
 
 COPY employee-hub-ui/ ./
-RUN npx vite build
+RUN npm run build
 
 # --- Stage 2: Build API ---
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS api-build
