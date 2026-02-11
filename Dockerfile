@@ -6,6 +6,11 @@
 FROM node:24-alpine AS frontend-build
 WORKDIR /src/frontend
 
+ARG VITE_AZURE_CLIENT_ID
+ARG VITE_AZURE_TENANT_ID
+ENV VITE_AZURE_CLIENT_ID=$VITE_AZURE_CLIENT_ID
+ENV VITE_AZURE_TENANT_ID=$VITE_AZURE_TENANT_ID
+
 COPY employee-hub-ui/package.json employee-hub-ui/package-lock.json ./
 RUN npm ci --legacy-peer-deps
 
