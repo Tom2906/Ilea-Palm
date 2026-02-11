@@ -6,8 +6,8 @@
 FROM node:22-alpine AS frontend-build
 WORKDIR /src/frontend
 
-COPY employee-hub-ui/package.json ./
-RUN npm install && find node_modules -name "core" -path "*dnd-kit*" -type d
+COPY employee-hub-ui/package.json employee-hub-ui/package-lock.json ./
+RUN npm ci --legacy-peer-deps
 
 COPY employee-hub-ui/ ./
 RUN npx vite build
@@ -29,7 +29,6 @@ WORKDIR /app
 COPY --from=api-build /app/publish ./
 COPY --from=frontend-build /src/frontend/dist ./wwwroot/
 
-# Non-root user for security
 USER $APP_UID
 
 EXPOSE 8080
