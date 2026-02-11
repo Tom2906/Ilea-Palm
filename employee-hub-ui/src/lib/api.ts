@@ -1,5 +1,10 @@
 const TOKEN_KEY = "auth_token"
 
+// JWT storage: localStorage is acceptable here because this is a single-customer internal tool
+// behind Cloudflare Tunnel with CSP script-src 'self' blocking XSS (the primary attack vector
+// for token theft). No third-party scripts are loaded. HttpOnly cookies would add significant
+// complexity (MSAL redirect flow + SameSite + Cloudflare domain config) for marginal gain.
+
 class ApiClient {
   private token: string | null = null
 

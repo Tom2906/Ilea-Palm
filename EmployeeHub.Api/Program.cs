@@ -5,7 +5,7 @@ using EmployeeHub.Api.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // Services
-builder.Services.AddSingleton<IDbService, DbService>();
+builder.Services.AddScoped<IDbService, DbService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
@@ -89,6 +89,7 @@ builder.Services.AddRateLimiter(options =>
 var app = builder.Build();
 
 // Middleware pipeline
+app.UseMiddleware<ExceptionHandlerMiddleware>();
 app.UseCors();
 app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseMiddleware<JwtAuthMiddleware>();
@@ -107,7 +108,6 @@ if (app.Environment.IsDevelopment())
 
 app.MapControllers();
 
-
 // Health check endpoint (includes DB connectivity test)
 app.MapGet("/api/health", async (IDbService db) =>
 {
@@ -118,9 +118,9 @@ app.MapGet("/api/health", async (IDbService db) =>
         var count = await cmd.ExecuteScalarAsync();
         return Results.Ok(new { status = "healthy", database = "connected", users = count, timestamp = DateTime.UtcNow });
     }
-    catch (Exception ex)
+    catch (Exception)
     {
-        return Results.Ok(new { status = "unhealthy", database = "failed", error = ex.Message, timestamp = DateTime.UtcNow });
+        return Results.Ok(new { status = "unhealthy", database = "failed", error = "database connection failed", timestamp = DateTime.UtcNow });
     }
 });
 

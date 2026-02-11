@@ -47,8 +47,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setLoading(false)
             return
           }
-        } catch {
-          // Redirect processing failed — fall through to normal token check
+        } catch (err) {
+          console.error("Microsoft redirect processing failed:", err)
         }
       }
 
@@ -57,7 +57,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (token) {
         try {
           setUser(await api.get<UserInfo>("/auth/me"))
-        } catch {
+        } catch (err) {
+          console.error("Token validation failed:", err)
           api.clearToken()
         }
       }
