@@ -3,7 +3,7 @@
 # Connects to external PostgreSQL (Supabase)
 
 # --- Stage 1: Build frontend ---
-FROM node:22-alpine AS frontend-build
+FROM node:24-alpine AS frontend-build
 WORKDIR /src/frontend
 
 COPY employee-hub-ui/ ./
