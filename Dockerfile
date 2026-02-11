@@ -7,7 +7,7 @@ FROM node:22-alpine AS frontend-build
 WORKDIR /src/frontend
 
 COPY employee-hub-ui/package.json ./
-RUN npm install && node -e "require.resolve('@dnd-kit/core')"
+RUN npm install && find node_modules -name "core" -path "*dnd-kit*" -type d
 
 COPY employee-hub-ui/ ./
 RUN npx vite build
