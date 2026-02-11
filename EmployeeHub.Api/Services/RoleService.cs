@@ -32,6 +32,7 @@ public class RoleService : IRoleService
         "day_in_life.use",
         // Administration (scope is always "all" — effectively boolean)
         "settings.manage", "notifications.manage", "audit_log.view", "users.manage", "employee_statuses.manage",
+        "gridviews.personal.manage",
         "gridviews.manage"
     };
 

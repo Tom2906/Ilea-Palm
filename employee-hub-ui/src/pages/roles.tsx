@@ -109,6 +109,8 @@ const PERMISSION_TABS: PermissionTab[] = [
       { page: "Audit Log", accessKeys: ["audit_log.view"], editKeys: [] },
       { page: "Notifications", accessKeys: ["notifications.manage"], editKeys: [] },
       { page: "Employee Statuses", accessKeys: ["employee_statuses.manage"], editKeys: [] },
+      { page: "Personal Views", accessKeys: ["gridviews.personal.manage"], editKeys: [] },
+      { page: "Company Default Views", accessKeys: ["gridviews.manage"], editKeys: [] },
     ],
   },
 ]

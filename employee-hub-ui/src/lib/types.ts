@@ -315,10 +315,10 @@ export interface CompanySettings {
   appraisalReviewsForward: number
   aiProvider: string | null
   aiModel: string | null
-  aiApiKey: string | null
-  anthropicApiKey: string | null
-  openaiApiKey: string | null
-  geminiApiKey: string | null
+  aiApiKey?: string | null
+  anthropicApiKey?: string | null
+  openaiApiKey?: string | null
+  geminiApiKey?: string | null
   dayInLifeProviderId: string | null
   dayInLifeModel: string | null
   dayInLifeSystemPrompt: string | null
@@ -434,4 +434,23 @@ export interface LeaveEntitlement {
   approvedDays: number
   remainingDays: number
   notes: string | null
+}
+
+export interface ViewConfig {
+  hiddenFilters: string[]
+  rowOrder: string[]
+  hiddenColumns: string[]
+  columnOrder: string[]
+}
+
+export interface GridView {
+  id: string
+  userId: string
+  gridType: string
+  name: string
+  config: ViewConfig
+  isDefault: boolean
+  isCompanyDefault: boolean
+  createdAt: string
+  updatedAt: string
 }

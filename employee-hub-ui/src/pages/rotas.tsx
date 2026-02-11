@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback, useEffect } from "react"
+import { useState, useMemo, useCallback } from "react"
+import { useViewManager, applyRowOrder } from "@/hooks/use-view-manager"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
@@ -6,15 +7,16 @@ import type { RotaMonth, RotaEmployee, Shift, CompanySettings } from "@/lib/type
 import type { Column } from "@/components/data-grid/types"
 import { DataGrid } from "@/components/data-grid/data-grid"
 import { FilterBar } from "@/components/filter-bar"
+import { ViewToolbar, ReorderRowsDialog } from "@/components/view-management"
 import { ShiftEditorModal } from "@/components/rotas/shift-editor-modal"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react"
 import { shiftColorMap } from "@/lib/shift-colors"
 
 interface DayCol {
   day: number
   date: string
-  dayOfWeek: number // 0=Sun, 6=Sat
+  dayOfWeek: number
   label: string
 }
 
@@ -43,12 +45,11 @@ function getDayColumns(year: number, month: number, daysInMonth: number): Column
 
 export default function RotasPage() {
   const { hasPermission } = useAuth()
+  const [reorderOpen, setReorderOpen] = useState(false)
 
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
-  const [hidden, setHidden] = useState<Set<string>>(new Set())
-  const [defaultsApplied, setDefaultsApplied] = useState(false)
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false)
@@ -62,15 +63,19 @@ export default function RotasPage() {
     queryFn: () => api.get<CompanySettings>("/companysettings"),
   })
 
-  useEffect(() => {
-    if (settings && !defaultsApplied) {
-      const defaults = new Set<string>()
-      settings.defaultHiddenRotaRoles?.forEach((role) => defaults.add(`role:${role}`))
-      settings.defaultHiddenRotaEmployeeStatuses?.forEach((status) => defaults.add(`empStatus:${status}`))
-      if (defaults.size > 0) setHidden(defaults)
-      setDefaultsApplied(true)
-    }
-  }, [settings, defaultsApplied])
+  // Rota uses its own default filter settings
+  const defaultHiddenFilters = useMemo(() => {
+    if (!settings) return undefined
+    const defaults = new Set<string>()
+    settings.defaultHiddenRotaRoles?.forEach((role) => defaults.add(`role:${role}`))
+    settings.defaultHiddenRotaEmployeeStatuses?.forEach((status) => defaults.add(`empStatus:${status}`))
+    return defaults.size > 0 ? defaults : undefined
+  }, [settings])
+
+  const vm = useViewManager({
+    gridType: "rota",
+    defaultHiddenFilters,
+  })
 
   const { data: rota, isLoading } = useQuery({
     queryKey: ["rota", year, month],
@@ -113,23 +118,6 @@ export default function RotasPage() {
     return [...new Set(rota.staff.map((s) => s.role).filter(Boolean))].sort()
   }, [rota])
 
-  const toggle = useCallback((id: string) => {
-    setHidden((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }, [])
-
-  const toggleAll = useCallback((ids: string[], hide: boolean) => {
-    setHidden((prev) => {
-      const next = new Set(prev)
-      ids.forEach((id) => (hide ? next.add(id) : next.delete(id)))
-      return next
-    })
-  }, [])
-
   const roleItems = useMemo(
     () => roles.map((r) => ({ id: `role:${r}`, label: r })),
     [roles],
@@ -138,10 +126,16 @@ export default function RotasPage() {
   const filteredStaff = useMemo(() => {
     if (!rota?.staff) return []
     return rota.staff.filter((s) => {
-      if (s.role && hidden.has(`role:${s.role}`)) return false
+      if (s.role && vm.hidden.has(`role:${s.role}`)) return false
       return true
     })
-  }, [rota, hidden])
+  }, [rota, vm.hidden])
+
+  // Apply row order
+  const orderedStaff = useMemo(
+    () => applyRowOrder(filteredStaff, (s) => s.employeeId, vm.currentConfig.rowOrder),
+    [filteredStaff, vm.currentConfig.rowOrder],
+  )
 
   // Grid columns
   const dayColumns = useMemo(
@@ -258,6 +252,16 @@ export default function RotasPage() {
     [rota?.shiftTypes],
   )
 
+  // Reorder items
+  const reorderItems = useMemo(
+    () => orderedStaff.map((s) => ({
+      id: s.employeeId,
+      label: `${s.firstName} ${s.lastName}`,
+      sublabel: s.role,
+    })),
+    [orderedStaff],
+  )
+
   const monthNav = (
     <div className="flex items-center gap-2">
       <Button variant="outline" size="sm" onClick={goToPreviousMonth}>
@@ -280,39 +284,66 @@ export default function RotasPage() {
   return (
     <div className="h-full flex flex-col gap-4">
       <DataGrid<RotaEmployee, DayCol>
-        rows={filteredStaff}
+        rows={orderedStaff}
         columns={dayColumns}
         getRowKey={(row) => row.employeeId}
         loading={isLoading}
         legend={legend}
         navigation={monthNav}
         toolbar={
+          <ViewToolbar
+            views={vm.views}
+            activeView={vm.activeView}
+            hasUnsavedChanges={vm.hasUnsavedChanges}
+            currentConfig={vm.currentConfig}
+            onLoadView={vm.loadView}
+            onClearActiveView={vm.clearActiveView}
+            onSave={vm.saveView}
+            onSaveAs={vm.saveAsNewView}
+            onDelete={vm.deleteView}
+            onRename={vm.renameView}
+            onSetDefault={vm.setDefaultView}
+            onClearDefault={vm.clearDefault}
+            canManagePersonalViews={vm.canManagePersonalViews}
+            canManageCompanyDefaults={vm.canManageCompanyDefaults}
+          >
             <FilterBar
               filters={[{ label: "Role", items: roleItems }]}
-              hidden={hidden}
-              onToggle={toggle}
-              onToggleAll={toggleAll}
-              onClear={() => setHidden(new Set())}
+              hidden={vm.hidden}
+              onToggle={vm.toggleFilter}
+              onToggleAll={vm.toggleAllFilters}
+              onClear={vm.clearFilters}
             />
-          }
-          cellWidth={42}
-          cellHeight={38}
-          rowLabelWidth={160}
-          emptyMessage="No staff found"
-          rowLabelHeader="Employee"
-          renderRowLabel={(row) => (
-            <div className="truncate" title={`${row.firstName} ${row.lastName}`}>
-              <div className="font-medium text-xs">
-                {row.firstName} {row.lastName}
-              </div>
-              <div className="text-[10px] text-muted-foreground truncate">{row.role}</div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-2 text-xs gap-1"
+              onClick={() => setReorderOpen(true)}
+              disabled={orderedStaff.length === 0}
+            >
+              <ArrowUpDown className="h-3.5 w-3.5" />
+              Reorder
+            </Button>
+          </ViewToolbar>
+        }
+        cellWidth={42}
+        cellHeight={38}
+        rowLabelWidth={160}
+        emptyMessage="No staff found"
+        rowLabelHeader="Employee"
+        renderRowLabel={(row) => (
+          <div className="truncate" title={`${row.firstName} ${row.lastName}`}>
+            <div className="font-medium text-xs">
+              {row.firstName} {row.lastName}
             </div>
-          )}
-          renderCell={renderCell}
-          onCellClick={hasPermission("rotas.edit") ? handleCellClick : undefined}
-          getCellClassName={getCellClassName}
-          summaryColumns={summaryColumns}
-        />
+            <div className="text-[10px] text-muted-foreground truncate">{row.role}</div>
+          </div>
+        )}
+        renderCell={renderCell}
+        onCellClick={hasPermission("rotas.edit") ? handleCellClick : undefined}
+        getCellClassName={getCellClassName}
+        summaryColumns={summaryColumns}
+      />
 
       {/* Shift editor modal */}
       {rota && (
@@ -328,6 +359,13 @@ export default function RotasPage() {
           month={month}
         />
       )}
+
+      <ReorderRowsDialog
+        open={reorderOpen}
+        onOpenChange={setReorderOpen}
+        items={reorderItems}
+        onApply={vm.setRowOrder}
+      />
     </div>
   )
 }
