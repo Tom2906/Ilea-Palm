@@ -2,7 +2,11 @@ using System.Threading.RateLimiting;
 using EmployeeHub.Api.Middleware;
 using EmployeeHub.Api.Services;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    WebRootPath = "wwwroot"
+});
 
 // Services
 builder.Services.AddScoped<IDbService, DbService>();
