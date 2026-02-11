@@ -6,10 +6,8 @@
 FROM node:22-alpine AS frontend-build
 WORKDIR /src/frontend
 
-COPY employee-hub-ui/package.json employee-hub-ui/package-lock.json ./
-RUN npm ci --legacy-peer-deps
-
 COPY employee-hub-ui/ ./
+RUN npm ci --legacy-peer-deps
 RUN npx vite build
 
 # --- Stage 2: Build API ---
