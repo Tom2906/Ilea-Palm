@@ -6,11 +6,11 @@
 FROM node:22-alpine AS frontend-build
 WORKDIR /src/frontend
 
-COPY employee-hub-ui/package.json employee-hub-ui/package-lock.json ./
-RUN npm install
+COPY employee-hub-ui/package.json ./
+RUN npm install && node -e "require.resolve('@dnd-kit/core')"
 
 COPY employee-hub-ui/ ./
-RUN npm run build
+RUN npx vite build
 
 # --- Stage 2: Build API ---
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS api-build
