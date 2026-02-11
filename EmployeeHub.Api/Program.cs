@@ -95,6 +95,8 @@ app.UseCors();
 app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseMiddleware<JwtAuthMiddleware>();
 app.UseRateLimiter();
+app.UseDefaultFiles();
+app.UseStaticFiles();
 
 // Swagger (dev only)
 if (app.Environment.IsDevelopment())
@@ -108,6 +110,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapControllers();
+app.MapFallbackToFile("index.html");
 
 // Health check endpoint (includes DB connectivity test)
 app.MapGet("/api/health", async (IDbService db) =>
