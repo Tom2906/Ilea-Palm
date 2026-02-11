@@ -16,11 +16,10 @@ public class OnboardingController : ControllerBase
         _onboardingService = onboardingService;
     }
 
+    [RequirePermission]
     [HttpGet("items")]
     public async Task<IActionResult> GetItems([FromQuery] bool includeInactive = false)
     {
-        if (User.GetUserId() == null) return Unauthorized();
-
         var items = await _onboardingService.GetItemsAsync(includeInactive);
         var response = items.Select(i => new OnboardingItemResponse
         {
@@ -31,14 +30,13 @@ public class OnboardingController : ControllerBase
         return Ok(response);
     }
 
+    [RequirePermission("onboarding.add")]
     [HttpPost("items")]
     public async Task<IActionResult> CreateItem([FromBody] CreateOnboardingItemRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("onboarding.add")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var item = await _onboardingService.CreateItemAsync(request, userId.Value);
+        var item = await _onboardingService.CreateItemAsync(request, userId);
         return CreatedAtAction(nameof(GetItems), null, new OnboardingItemResponse
         {
             Id = item.Id, Name = item.Name, Description = item.Description,
@@ -47,14 +45,13 @@ public class OnboardingController : ControllerBase
         });
     }
 
+    [RequirePermission("onboarding.edit")]
     [HttpPut("items/{id:guid}")]
     public async Task<IActionResult> UpdateItem(Guid id, [FromBody] UpdateOnboardingItemRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("onboarding.edit")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var item = await _onboardingService.UpdateItemAsync(id, request, userId.Value);
+        var item = await _onboardingService.UpdateItemAsync(id, request, userId);
         if (item == null) return NotFound();
 
         return Ok(new OnboardingItemResponse
@@ -65,41 +62,38 @@ public class OnboardingController : ControllerBase
         });
     }
 
+    [RequirePermission("onboarding.delete")]
     [HttpDelete("items/{id:guid}")]
     public async Task<IActionResult> DeleteItem(Guid id)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("onboarding.delete")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var success = await _onboardingService.DeleteItemAsync(id, userId.Value);
+        var success = await _onboardingService.DeleteItemAsync(id, userId);
         if (!success) return NotFound();
 
         return Ok(new { message = "Onboarding item deactivated" });
     }
 
+    [RequirePermission("onboarding.view")]
     [HttpGet("employee/{employeeId:guid}")]
     public async Task<IActionResult> GetEmployeeRecords(Guid employeeId)
     {
-        if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("onboarding.view")) return StatusCode(403);
 
         var records = await _onboardingService.GetEmployeeRecordsAsync(employeeId);
         return Ok(records);
     }
 
+    [RequirePermission("onboarding.edit")]
     [HttpPut("employee/{employeeId:guid}/{itemId:guid}")]
     public async Task<IActionResult> UpdateRecord(Guid employeeId, Guid itemId, [FromBody] UpdateOnboardingRecordRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("onboarding.edit")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
         var validStatuses = new[] { "pending", "complete", "not_required" };
         if (!validStatuses.Contains(request.Status))
             return BadRequest(new { error = "Status must be: pending, complete, or not_required" });
 
-        var record = await _onboardingService.UpdateRecordAsync(employeeId, itemId, request, userId.Value);
+        var record = await _onboardingService.UpdateRecordAsync(employeeId, itemId, request, userId);
         if (record == null) return NotFound();
 
         return Ok(record);

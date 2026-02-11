@@ -1,3 +1,4 @@
+using EmployeeHub.Api.Helpers;
 using EmployeeHub.Api.Models;
 using Npgsql;
 
@@ -119,35 +120,40 @@ public class CompanySettingsService : ICompanySettingsService
 
     private static CompanySettings ReadSettings(NpgsqlDataReader reader)
     {
+        var hiddenRolesOrd = reader.GetOrdinal("default_hidden_roles");
+        var hiddenStatusesOrd = reader.GetOrdinal("default_hidden_employee_statuses");
+        var hiddenRotaRolesOrd = reader.GetOrdinal("default_hidden_rota_roles");
+        var hiddenRotaStatusesOrd = reader.GetOrdinal("default_hidden_rota_employee_statuses");
+
         return new CompanySettings
         {
-            Id = reader.GetGuid(0),
-            CompanyName = reader.GetString(1),
-            DefaultExpiryWarningDays = reader.GetInt32(2),
-            DefaultNotificationDaysBefore = reader.GetInt32(3),
-            DefaultReminderFrequencyDays = reader.GetInt32(4),
-            DefaultNotifyEmployee = reader.GetBoolean(5),
-            DefaultNotifyAdmin = reader.GetBoolean(6),
-            DefaultSupervisionFrequencyMonths = reader.GetInt32(7),
-            SupervisionMonthsBack = reader.GetInt32(8),
-            SupervisionMonthsForward = reader.GetInt32(9),
-            DefaultHiddenRoles = reader.IsDBNull(10) ? Array.Empty<string>() : reader.GetFieldValue<string[]>(10),
-            DefaultHiddenEmployeeStatuses = reader.IsDBNull(11) ? Array.Empty<string>() : reader.GetFieldValue<string[]>(11),
-            DefaultHiddenRotaRoles = reader.IsDBNull(12) ? Array.Empty<string>() : reader.GetFieldValue<string[]>(12),
-            DefaultHiddenRotaEmployeeStatuses = reader.IsDBNull(13) ? Array.Empty<string>() : reader.GetFieldValue<string[]>(13),
-            AppraisalReviewsBack = reader.GetInt32(14),
-            AppraisalReviewsForward = reader.GetInt32(15),
-            AiProvider = reader.IsDBNull(16) ? null : reader.GetString(16),
-            AiModel = reader.IsDBNull(17) ? null : reader.GetString(17),
-            AiApiKey = reader.IsDBNull(18) ? null : reader.GetString(18),
-            AnthropicApiKey = reader.IsDBNull(19) ? null : reader.GetString(19),
-            OpenaiApiKey = reader.IsDBNull(20) ? null : reader.GetString(20),
-            GeminiApiKey = reader.IsDBNull(21) ? null : reader.GetString(21),
-            DayInLifeProviderId = reader.IsDBNull(22) ? null : reader.GetGuid(22),
-            DayInLifeModel = reader.IsDBNull(23) ? null : reader.GetString(23),
-            DayInLifeSystemPrompt = reader.IsDBNull(24) ? null : reader.GetString(24),
-            CreatedAt = reader.GetDateTime(25),
-            UpdatedAt = reader.GetDateTime(26)
+            Id = reader.GetGuid("id"),
+            CompanyName = reader.GetString("company_name"),
+            DefaultExpiryWarningDays = reader.GetInt32("default_expiry_warning_days"),
+            DefaultNotificationDaysBefore = reader.GetInt32("default_notification_days_before"),
+            DefaultReminderFrequencyDays = reader.GetInt32("default_reminder_frequency_days"),
+            DefaultNotifyEmployee = reader.GetBoolean("default_notify_employee"),
+            DefaultNotifyAdmin = reader.GetBoolean("default_notify_admin"),
+            DefaultSupervisionFrequencyMonths = reader.GetInt32("default_supervision_frequency_months"),
+            SupervisionMonthsBack = reader.GetInt32("supervision_months_back"),
+            SupervisionMonthsForward = reader.GetInt32("supervision_months_forward"),
+            DefaultHiddenRoles = reader.IsDBNull(hiddenRolesOrd) ? Array.Empty<string>() : reader.GetFieldValue<string[]>(hiddenRolesOrd),
+            DefaultHiddenEmployeeStatuses = reader.IsDBNull(hiddenStatusesOrd) ? Array.Empty<string>() : reader.GetFieldValue<string[]>(hiddenStatusesOrd),
+            DefaultHiddenRotaRoles = reader.IsDBNull(hiddenRotaRolesOrd) ? Array.Empty<string>() : reader.GetFieldValue<string[]>(hiddenRotaRolesOrd),
+            DefaultHiddenRotaEmployeeStatuses = reader.IsDBNull(hiddenRotaStatusesOrd) ? Array.Empty<string>() : reader.GetFieldValue<string[]>(hiddenRotaStatusesOrd),
+            AppraisalReviewsBack = reader.GetInt32("appraisal_reviews_back"),
+            AppraisalReviewsForward = reader.GetInt32("appraisal_reviews_forward"),
+            AiProvider = reader.GetStringOrNull("ai_provider"),
+            AiModel = reader.GetStringOrNull("ai_model"),
+            AiApiKey = reader.GetStringOrNull("ai_api_key"),
+            AnthropicApiKey = reader.GetStringOrNull("anthropic_api_key"),
+            OpenaiApiKey = reader.GetStringOrNull("openai_api_key"),
+            GeminiApiKey = reader.GetStringOrNull("gemini_api_key"),
+            DayInLifeProviderId = reader.GetGuidOrNull("day_in_life_provider_id"),
+            DayInLifeModel = reader.GetStringOrNull("day_in_life_model"),
+            DayInLifeSystemPrompt = reader.GetStringOrNull("day_in_life_system_prompt"),
+            CreatedAt = reader.GetDateTime("created_at"),
+            UpdatedAt = reader.GetDateTime("updated_at")
         };
     }
 }

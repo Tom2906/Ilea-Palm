@@ -1,4 +1,5 @@
 using EmployeeHub.Api.DTOs;
+using EmployeeHub.Api.Helpers;
 using EmployeeHub.Api.Models;
 using Npgsql;
 
@@ -36,17 +37,17 @@ public class TrainingRecordService : ITrainingRecordService
         {
             records.Add(new TrainingRecordResponse
             {
-                Id = reader.GetGuid(0),
-                EmployeeId = reader.GetGuid(1),
-                CourseId = reader.GetGuid(2),
-                CompletionDate = DateOnly.FromDateTime(reader.GetDateTime(3)),
-                ExpiryDate = reader.IsDBNull(4) ? null : DateOnly.FromDateTime(reader.GetDateTime(4)),
-                CertificateUrl = reader.IsDBNull(5) ? null : reader.GetString(5),
-                Notes = reader.IsDBNull(6) ? null : reader.GetString(6),
-                RecordedBy = reader.GetGuid(7),
-                CreatedAt = reader.GetDateTime(8),
-                EmployeeName = reader.GetString(9),
-                CourseName = reader.GetString(10)
+                Id = reader.GetGuid("id"),
+                EmployeeId = reader.GetGuid("employee_id"),
+                CourseId = reader.GetGuid("course_id"),
+                CompletionDate = reader.GetDateOnly("completion_date"),
+                ExpiryDate = reader.GetDateOnlyOrNull("expiry_date"),
+                CertificateUrl = reader.GetStringOrNull("certificate_url"),
+                Notes = reader.GetStringOrNull("notes"),
+                RecordedBy = reader.GetGuid("recorded_by"),
+                CreatedAt = reader.GetDateTime("created_at"),
+                EmployeeName = reader.GetString("employee_name"),
+                CourseName = reader.GetString("course_name")
             });
         }
         return records;
@@ -82,13 +83,13 @@ public class TrainingRecordService : ITrainingRecordService
 
         await using var reader = await cmd.ExecuteReaderAsync();
         await reader.ReadAsync();
-        var id = reader.GetGuid(0);
-        var createdAt = reader.GetDateTime(1);
+        var id = reader.GetGuid("id");
+        var createdAt = reader.GetDateTime("created_at");
         await reader.CloseAsync();
 
         // Get employee and course names for response
         await using var nameCmd = new NpgsqlCommand(@"
-            SELECT e.first_name || ' ' || e.last_name, tc.name
+            SELECT e.first_name || ' ' || e.last_name as employee_name, tc.name as course_name
             FROM employees e, training_courses tc
             WHERE e.id = @eid AND tc.id = @cid", conn);
         nameCmd.Parameters.AddWithValue("eid", request.EmployeeId);
@@ -96,8 +97,8 @@ public class TrainingRecordService : ITrainingRecordService
 
         await using var nameReader = await nameCmd.ExecuteReaderAsync();
         await nameReader.ReadAsync();
-        var employeeName = nameReader.GetString(0);
-        var courseName = nameReader.GetString(1);
+        var employeeName = nameReader.GetString("employee_name");
+        var courseName = nameReader.GetString("course_name");
         await nameReader.CloseAsync();
 
         await _audit.LogAsync("training_records", id, "create", userId, newData: request);
@@ -162,20 +163,20 @@ public class TrainingRecordService : ITrainingRecordService
         {
             results.Add(new TrainingStatusResponse
             {
-                EmployeeId = reader.GetGuid(0),
-                FirstName = reader.GetString(1),
-                LastName = reader.GetString(2),
-                Email = reader.GetString(3),
-                Department = reader.IsDBNull(4) ? null : reader.GetString(4),
-                CourseId = reader.GetGuid(5),
-                CourseName = reader.GetString(6),
-                Category = reader.GetString(7),
-                ValidityMonths = reader.IsDBNull(8) ? null : reader.GetInt32(8),
-                TrainingRecordId = reader.IsDBNull(9) ? null : reader.GetGuid(9),
-                CompletionDate = reader.IsDBNull(10) ? null : DateOnly.FromDateTime(reader.GetDateTime(10)),
-                ExpiryDate = reader.IsDBNull(11) ? null : DateOnly.FromDateTime(reader.GetDateTime(11)),
-                Status = reader.GetString(12),
-                DaysUntilExpiry = reader.IsDBNull(13) ? null : reader.GetInt32(13)
+                EmployeeId = reader.GetGuid("employee_id"),
+                FirstName = reader.GetString("first_name"),
+                LastName = reader.GetString("last_name"),
+                Email = reader.GetString("email"),
+                Department = reader.GetStringOrNull("department"),
+                CourseId = reader.GetGuid("course_id"),
+                CourseName = reader.GetString("course_name"),
+                Category = reader.GetString("category"),
+                ValidityMonths = reader.GetInt32OrNull("validity_months"),
+                TrainingRecordId = reader.GetGuidOrNull("training_record_id"),
+                CompletionDate = reader.GetDateOnlyOrNull("completion_date"),
+                ExpiryDate = reader.GetDateOnlyOrNull("expiry_date"),
+                Status = reader.GetString("status"),
+                DaysUntilExpiry = reader.GetInt32OrNull("days_until_expiry")
             });
         }
         return results;

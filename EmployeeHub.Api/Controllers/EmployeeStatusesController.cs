@@ -16,35 +16,32 @@ public class EmployeeStatusesController : ControllerBase
         _statusService = statusService;
     }
 
+    [RequirePermission]
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] bool includeInactive = false)
     {
-        if (User.GetUserId() == null) return Unauthorized();
-
         var statuses = await _statusService.GetAllAsync(includeInactive);
         var response = statuses.Select(s => MapToResponse(s));
         return Ok(response);
     }
 
+    [RequirePermission("employee_statuses.manage")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateEmployeeStatusRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("employee_statuses.manage")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var status = await _statusService.CreateAsync(request, userId.Value);
+        var status = await _statusService.CreateAsync(request, userId);
         return CreatedAtAction(nameof(GetAll), MapToResponse(status));
     }
 
+    [RequirePermission("employee_statuses.manage")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateEmployeeStatusRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("employee_statuses.manage")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var status = await _statusService.UpdateAsync(id, request, userId.Value);
+        var status = await _statusService.UpdateAsync(id, request, userId);
         if (status == null) return NotFound();
 
         return Ok(MapToResponse(status));

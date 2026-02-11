@@ -1,4 +1,5 @@
 using EmployeeHub.Api.DTOs;
+using EmployeeHub.Api.Helpers;
 using Npgsql;
 
 namespace EmployeeHub.Api.Services;
@@ -78,14 +79,14 @@ public class AppraisalService : IAppraisalService
             while (await reader.ReadAsync())
             {
                 employees.Add((
-                    reader.GetGuid(0),
-                    reader.GetString(1),
-                    reader.GetString(2),
-                    reader.GetString(3),
-                    reader.IsDBNull(4) ? null : reader.GetString(4),
-                    DateOnly.FromDateTime(reader.GetDateTime(5)),
-                    reader.GetInt32(6),
-                    reader.IsDBNull(7) ? null : reader.GetString(7)
+                    reader.GetGuid("id"),
+                    reader.GetString("first_name"),
+                    reader.GetString("last_name"),
+                    reader.GetString("role"),
+                    reader.GetStringOrNull("department"),
+                    reader.GetDateOnly("start_date"),
+                    reader.GetInt32("appraisal_frequency_months"),
+                    reader.GetStringOrNull("status_name")
                 ));
             }
         }
@@ -106,22 +107,22 @@ public class AppraisalService : IAppraisalService
         {
             while (await reader.ReadAsync())
             {
-                var empId = reader.GetGuid(0);
-                var dueDate = DateOnly.FromDateTime(reader.GetDateTime(3));
-                var completedDate = reader.IsDBNull(4) ? (DateOnly?)null : DateOnly.FromDateTime(reader.GetDateTime(4));
+                var empId = reader.GetGuid("employee_id");
+                var dueDate = reader.GetDateOnly("due_date");
+                var completedDate = reader.GetDateOnlyOrNull("completed_date");
 
                 if (!milestonesByEmployee.ContainsKey(empId))
                     milestonesByEmployee[empId] = new List<AppraisalCellData>();
 
                 milestonesByEmployee[empId].Add(new AppraisalCellData
                 {
-                    Id = reader.GetGuid(1),
-                    ReviewNumber = reader.GetInt32(2),
+                    Id = reader.GetGuid("id"),
+                    ReviewNumber = reader.GetInt32("review_number"),
                     DueDate = dueDate,
                     CompletedDate = completedDate,
-                    ConductedById = reader.IsDBNull(5) ? null : reader.GetGuid(5),
-                    ConductedByName = reader.IsDBNull(7) ? null : reader.GetString(7),
-                    Notes = reader.IsDBNull(6) ? null : reader.GetString(6),
+                    ConductedById = reader.GetGuidOrNull("conducted_by_id"),
+                    ConductedByName = reader.GetStringOrNull("conducted_by_name"),
+                    Notes = reader.GetStringOrNull("notes"),
                     Status = CalculateStatus(dueDate, completedDate),
                     DaysUntilDue = CalculateDaysUntilDue(dueDate, completedDate)
                 });
@@ -183,9 +184,9 @@ public class AppraisalService : IAppraisalService
 
         await using var reader = await cmd.ExecuteReaderAsync();
         await reader.ReadAsync();
-        var id = reader.GetGuid(0);
-        var createdAt = reader.GetDateTime(1);
-        var updatedAt = reader.GetDateTime(2);
+        var id = reader.GetGuid("id");
+        var createdAt = reader.GetDateTime("created_at");
+        var updatedAt = reader.GetDateTime("updated_at");
         await reader.CloseAsync();
 
         // Calculate review number from chronological position
@@ -198,8 +199,8 @@ public class AppraisalService : IAppraisalService
 
         // Get employee and conductor names
         await using var nameCmd = new NpgsqlCommand(@"
-            SELECT e.first_name || ' ' || e.last_name,
-                   COALESCE((SELECT first_name || ' ' || last_name FROM employees WHERE id = @conductedById), NULL)
+            SELECT e.first_name || ' ' || e.last_name as employee_name,
+                   COALESCE((SELECT first_name || ' ' || last_name FROM employees WHERE id = @conductedById), NULL) as conducted_by_name
             FROM employees e
             WHERE e.id = @employeeId", conn);
         nameCmd.Parameters.AddWithValue("employeeId", request.EmployeeId);
@@ -207,8 +208,8 @@ public class AppraisalService : IAppraisalService
 
         await using var nameReader = await nameCmd.ExecuteReaderAsync();
         await nameReader.ReadAsync();
-        var employeeName = nameReader.GetString(0);
-        var conductedByName = nameReader.IsDBNull(1) ? null : nameReader.GetString(1);
+        var employeeName = nameReader.GetString("employee_name");
+        var conductedByName = nameReader.GetStringOrNull("conducted_by_name");
         await nameReader.CloseAsync();
 
         await _audit.LogAsync("appraisal_milestones", id, "INSERT", userId, null, new { request.EmployeeId, request.DueDate, request.CompletedDate, request.ConductedById, request.Notes });
@@ -278,13 +279,13 @@ public class AppraisalService : IAppraisalService
         if (!await reader.ReadAsync())
             return null;
 
-        var employeeId = reader.GetGuid(0);
-        var dueDate = DateOnly.FromDateTime(reader.GetDateTime(1));
-        var completedDate = reader.IsDBNull(2) ? (DateOnly?)null : DateOnly.FromDateTime(reader.GetDateTime(2));
-        var conductedById = reader.IsDBNull(3) ? (Guid?)null : reader.GetGuid(3);
-        var notes = reader.IsDBNull(4) ? null : reader.GetString(4);
-        var createdAt = reader.GetDateTime(5);
-        var updatedAt = reader.GetDateTime(6);
+        var employeeId = reader.GetGuid("employee_id");
+        var dueDate = reader.GetDateOnly("due_date");
+        var completedDate = reader.GetDateOnlyOrNull("completed_date");
+        var conductedById = reader.GetGuidOrNull("conducted_by_id");
+        var notes = reader.GetStringOrNull("notes");
+        var createdAt = reader.GetDateTime("created_at");
+        var updatedAt = reader.GetDateTime("updated_at");
         await reader.CloseAsync();
 
         // Calculate review number from chronological position
@@ -297,8 +298,8 @@ public class AppraisalService : IAppraisalService
 
         // Get names
         await using var nameCmd = new NpgsqlCommand(@"
-            SELECT e.first_name || ' ' || e.last_name,
-                   COALESCE((SELECT first_name || ' ' || last_name FROM employees WHERE id = @conductedById), NULL)
+            SELECT e.first_name || ' ' || e.last_name as employee_name,
+                   COALESCE((SELECT first_name || ' ' || last_name FROM employees WHERE id = @conductedById), NULL) as conducted_by_name
             FROM employees e
             WHERE e.id = @employeeId", conn);
         nameCmd.Parameters.AddWithValue("employeeId", employeeId);
@@ -306,8 +307,8 @@ public class AppraisalService : IAppraisalService
 
         await using var nameReader = await nameCmd.ExecuteReaderAsync();
         await nameReader.ReadAsync();
-        var employeeName = nameReader.GetString(0);
-        var conductedByName = nameReader.IsDBNull(1) ? null : nameReader.GetString(1);
+        var employeeName = nameReader.GetString("employee_name");
+        var conductedByName = nameReader.GetStringOrNull("conducted_by_name");
         await nameReader.CloseAsync();
 
         await _audit.LogAsync("appraisal_milestones", id, "UPDATE", userId, null, new { request.DueDate, request.CompletedDate, request.ConductedById, request.Notes });
@@ -355,10 +356,10 @@ public class AppraisalService : IAppraisalService
 
         await using var empReader = await empCmd.ExecuteReaderAsync();
         if (!await empReader.ReadAsync())
-            throw new ArgumentException("Employee not found");
+            throw new KeyNotFoundException("Employee not found");
 
-        var startDate = DateOnly.FromDateTime(empReader.GetDateTime(0));
-        var frequencyMonths = empReader.GetInt32(1);
+        var startDate = empReader.GetDateOnly("start_date");
+        var frequencyMonths = empReader.GetInt32("appraisal_frequency_months");
         await empReader.CloseAsync();
 
         // Count existing milestones to determine next due dates
@@ -399,23 +400,23 @@ public class AppraisalService : IAppraisalService
 
         while (await reader.ReadAsync())
         {
-            var dueDate = DateOnly.FromDateTime(reader.GetDateTime(3));
-            var completedDate = reader.IsDBNull(4) ? (DateOnly?)null : DateOnly.FromDateTime(reader.GetDateTime(4));
-            var reviewNumber = reader.GetInt32(2);
+            var dueDate = reader.GetDateOnly("due_date");
+            var completedDate = reader.GetDateOnlyOrNull("completed_date");
+            var reviewNumber = reader.GetInt32("review_number");
 
             results.Add(new AppraisalResponse
             {
-                Id = reader.GetGuid(0),
-                EmployeeId = reader.GetGuid(1),
+                Id = reader.GetGuid("id"),
+                EmployeeId = reader.GetGuid("employee_id"),
                 ReviewNumber = reviewNumber,
                 DueDate = dueDate,
                 CompletedDate = completedDate,
-                ConductedById = reader.IsDBNull(5) ? null : reader.GetGuid(5),
-                Notes = reader.IsDBNull(6) ? null : reader.GetString(6),
-                CreatedAt = reader.GetDateTime(7),
-                UpdatedAt = reader.GetDateTime(8),
-                EmployeeName = reader.GetString(9),
-                ConductedByName = reader.IsDBNull(10) ? null : reader.GetString(10),
+                ConductedById = reader.GetGuidOrNull("conducted_by_id"),
+                Notes = reader.GetStringOrNull("notes"),
+                CreatedAt = reader.GetDateTime("created_at"),
+                UpdatedAt = reader.GetDateTime("updated_at"),
+                EmployeeName = reader.GetString("employee_name"),
+                ConductedByName = reader.GetStringOrNull("conducted_by_name"),
                 Status = CalculateStatus(dueDate, completedDate),
                 DaysUntilDue = CalculateDaysUntilDue(dueDate, completedDate)
             });

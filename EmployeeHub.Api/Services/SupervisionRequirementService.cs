@@ -1,4 +1,5 @@
 using EmployeeHub.Api.DTOs;
+using EmployeeHub.Api.Helpers;
 using EmployeeHub.Api.Models;
 using Npgsql;
 
@@ -30,13 +31,7 @@ public class SupervisionRequirementService : ISupervisionRequirementService
 
         while (await reader.ReadAsync())
         {
-            requirements.Add(new SupervisionRequirementDto(
-                reader.GetGuid(0),
-                reader.GetGuid(1),
-                DateOnly.FromDateTime(reader.GetDateTime(2)),
-                reader.GetInt32(3),
-                reader.GetDateTime(4)
-            ));
+            requirements.Add(ReadRequirement(reader));
         }
 
         return requirements;
@@ -60,13 +55,7 @@ public class SupervisionRequirementService : ISupervisionRequirementService
 
         while (await reader.ReadAsync())
         {
-            requirements.Add(new SupervisionRequirementDto(
-                reader.GetGuid(0),
-                reader.GetGuid(1),
-                DateOnly.FromDateTime(reader.GetDateTime(2)),
-                reader.GetInt32(3),
-                reader.GetDateTime(4)
-            ));
+            requirements.Add(ReadRequirement(reader));
         }
 
         return requirements;
@@ -88,13 +77,7 @@ public class SupervisionRequirementService : ISupervisionRequirementService
 
         if (await reader.ReadAsync())
         {
-            return new SupervisionRequirementDto(
-                reader.GetGuid(0),
-                reader.GetGuid(1),
-                DateOnly.FromDateTime(reader.GetDateTime(2)),
-                reader.GetInt32(3),
-                reader.GetDateTime(4)
-            );
+            return ReadRequirement(reader);
         }
 
         return null;
@@ -140,13 +123,7 @@ public class SupervisionRequirementService : ISupervisionRequirementService
         await using var reader = await cmd.ExecuteReaderAsync();
         await reader.ReadAsync();
 
-        var dto = new SupervisionRequirementDto(
-            reader.GetGuid(0),
-            reader.GetGuid(1),
-            DateOnly.FromDateTime(reader.GetDateTime(2)),
-            reader.GetInt32(3),
-            reader.GetDateTime(4)
-        );
+        var dto = ReadRequirement(reader);
 
         await _audit.LogAsync("supervision_requirements", dto.Id, "INSERT", null, null, dto);
 
@@ -176,13 +153,7 @@ public class SupervisionRequirementService : ISupervisionRequirementService
         await using var reader = await cmd.ExecuteReaderAsync();
         await reader.ReadAsync();
 
-        var dto = new SupervisionRequirementDto(
-            reader.GetGuid(0),
-            reader.GetGuid(1),
-            DateOnly.FromDateTime(reader.GetDateTime(2)),
-            reader.GetInt32(3),
-            reader.GetDateTime(4)
-        );
+        var dto = ReadRequirement(reader);
 
         await _audit.LogAsync("supervision_requirements", dto.Id, "UPDATE", null, existing, dto);
 
@@ -209,5 +180,16 @@ public class SupervisionRequirementService : ISupervisionRequirementService
         }
 
         return rows > 0;
+    }
+
+    private static SupervisionRequirementDto ReadRequirement(NpgsqlDataReader reader)
+    {
+        return new SupervisionRequirementDto(
+            reader.GetGuid("id"),
+            reader.GetGuid("employee_id"),
+            reader.GetDateOnly("effective_from"),
+            reader.GetInt32("required_count"),
+            reader.GetDateTime("created_at")
+        );
     }
 }

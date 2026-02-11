@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using EmployeeHub.Api.DTOs;
+using EmployeeHub.Api.Helpers;
 using EmployeeHub.Api.Models;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
@@ -223,8 +224,12 @@ public class AuthService : IAuthService
         }, null);
     }
 
-    public async Task<bool> ChangePasswordAsync(Guid userId, ChangePasswordRequest request)
+    public async Task<(bool Success, string? Error)> ChangePasswordAsync(Guid userId, ChangePasswordRequest request)
     {
+        var (isValid, validationError) = Helpers.PasswordValidator.Validate(request.NewPassword);
+        if (!isValid)
+            return (false, validationError);
+
         await using var conn = await _db.GetConnectionAsync();
         await using var cmd = new NpgsqlCommand(
             "SELECT password_hash, auth_method FROM users WHERE id = @id", conn);
@@ -232,20 +237,20 @@ public class AuthService : IAuthService
 
         await using var reader = await cmd.ExecuteReaderAsync();
         if (!await reader.ReadAsync())
-            return false;
+            return (false, "User not found");
 
-        var authMethod = reader.GetString(1);
+        var authMethod = reader.GetString("auth_method");
         if (authMethod == "microsoft")
-            return false;
+            return (false, "This account uses Microsoft sign-in");
 
-        var currentHash = reader.IsDBNull(0) ? null : reader.GetString(0);
+        var currentHash = reader.GetStringOrNull("password_hash");
         await reader.CloseAsync();
 
         if (currentHash == null)
-            return false;
+            return (false, "This account uses Microsoft sign-in");
 
         if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, currentHash))
-            return false;
+            return (false, "Current password is incorrect");
 
         var newHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
 
@@ -257,7 +262,7 @@ public class AuthService : IAuthService
 
         await _audit.LogAsync("users", userId, "change_password", userId);
 
-        return true;
+        return (true, null);
     }
 
     public async Task<User?> GetUserByIdAsync(Guid userId)
@@ -318,15 +323,15 @@ public class AuthService : IAuthService
     {
         return new User
         {
-            Id = reader.GetGuid(0),
-            Email = reader.GetString(1),
-            PasswordHash = reader.IsDBNull(2) ? null : reader.GetString(2),
-            DisplayName = reader.GetString(3),
-            RoleId = reader.GetGuid(4),
-            EmployeeId = reader.IsDBNull(5) ? null : reader.GetGuid(5),
-            Active = reader.GetBoolean(6),
-            RoleName = reader.GetString(7),
-            AuthMethod = reader.GetString(8)
+            Id = reader.GetGuid("id"),
+            Email = reader.GetString("email"),
+            PasswordHash = reader.GetStringOrNull("password_hash"),
+            DisplayName = reader.GetString("display_name"),
+            RoleId = reader.GetGuid("role_id"),
+            EmployeeId = reader.GetGuidOrNull("employee_id"),
+            Active = reader.GetBoolean("active"),
+            RoleName = reader.GetString("role_name"),
+            AuthMethod = reader.GetString("auth_method")
         };
     }
 
@@ -339,7 +344,7 @@ public class AuthService : IAuthService
         var permissions = new Dictionary<string, string>();
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
-            permissions[reader.GetString(0)] = reader.GetString(1);
+            permissions[reader.GetString("permission")] = reader.GetString("scope");
 
         return permissions;
     }

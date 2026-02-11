@@ -10,4 +10,5 @@ public interface IEmployeeService
     Task<Employee> CreateAsync(CreateEmployeeRequest request, Guid userId);
     Task<Employee?> UpdateAsync(Guid id, UpdateEmployeeRequest request, Guid userId);
     Task<bool> SoftDeleteAsync(Guid id, Guid userId);
+    Task<List<string>> GetDistinctRolesAsync();
 }

@@ -16,42 +16,38 @@ public class SupervisionExceptionsController : ControllerBase
         _exceptionService = exceptionService;
     }
 
+    [RequirePermission("supervisions.view")]
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] Guid? employeeId = null, [FromQuery] string? period = null)
     {
-        if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("supervisions.view")) return StatusCode(403);
 
         var exceptions = await _exceptionService.GetAllAsync(employeeId, period);
         return Ok(exceptions);
     }
 
+    [RequirePermission("supervisions.view")]
     [HttpGet("employee/{employeeId:guid}")]
     public async Task<IActionResult> GetByEmployee(Guid employeeId)
     {
-        if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("supervisions.view")) return StatusCode(403);
 
         var exceptions = await _exceptionService.GetByEmployeeAsync(employeeId);
         return Ok(exceptions);
     }
 
+    [RequirePermission("supervisions.view")]
     [HttpGet("period/{period}")]
     public async Task<IActionResult> GetByPeriod(string period)
     {
-        if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("supervisions.view")) return StatusCode(403);
 
         var exceptions = await _exceptionService.GetByPeriodAsync(period);
         return Ok(exceptions);
     }
 
+    [RequirePermission("supervisions.edit")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateSupervisionExceptionRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("supervisions.edit")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
         // Validate exception_type
         var validTypes = new[] { "not_required", "annual_leave", "sick_leave" };
@@ -68,7 +64,7 @@ public class SupervisionExceptionsController : ControllerBase
 
         try
         {
-            var exception = await _exceptionService.CreateAsync(request, userId.Value);
+            var exception = await _exceptionService.CreateAsync(request, userId);
             return CreatedAtAction(nameof(GetAll), new { }, exception);
         }
         catch (Npgsql.PostgresException ex) when (ex.SqlState == "23505") // unique_violation
@@ -77,14 +73,13 @@ public class SupervisionExceptionsController : ControllerBase
         }
     }
 
+    [RequirePermission("supervisions.delete")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("supervisions.delete")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var success = await _exceptionService.DeleteAsync(id, userId.Value);
+        var success = await _exceptionService.DeleteAsync(id, userId);
         if (!success) return NotFound();
 
         return Ok(new { message = "Supervision exception deleted" });

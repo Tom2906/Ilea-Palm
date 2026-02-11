@@ -1,4 +1,5 @@
 using EmployeeHub.Api.DTOs;
+using EmployeeHub.Api.Helpers;
 using Npgsql;
 
 namespace EmployeeHub.Api.Services;
@@ -47,15 +48,15 @@ public class SupervisionExceptionService : ISupervisionExceptionService
         {
             exceptions.Add(new SupervisionExceptionResponse
             {
-                Id = reader.GetGuid(0),
-                EmployeeId = reader.GetGuid(1),
-                Period = reader.GetString(2),
-                ExceptionType = reader.GetString(3),
-                Notes = reader.IsDBNull(4) ? null : reader.GetString(4),
-                CreatedBy = reader.IsDBNull(5) ? null : reader.GetGuid(5),
-                CreatedAt = reader.GetDateTime(6),
-                EmployeeName = reader.GetString(7),
-                CreatedByName = reader.IsDBNull(8) ? null : reader.GetString(8)
+                Id = reader.GetGuid("id"),
+                EmployeeId = reader.GetGuid("employee_id"),
+                Period = reader.GetString("period"),
+                ExceptionType = reader.GetString("exception_type"),
+                Notes = reader.GetStringOrNull("notes"),
+                CreatedBy = reader.GetGuidOrNull("created_by"),
+                CreatedAt = reader.GetDateTime("created_at"),
+                EmployeeName = reader.GetString("employee_name"),
+                CreatedByName = reader.GetStringOrNull("created_by_name")
             });
         }
 
@@ -89,8 +90,8 @@ public class SupervisionExceptionService : ISupervisionExceptionService
 
         await using var reader = await cmd.ExecuteReaderAsync();
         await reader.ReadAsync();
-        var id = reader.GetGuid(0);
-        var createdAt = reader.GetDateTime(1);
+        var id = reader.GetGuid("id");
+        var createdAt = reader.GetDateTime("created_at");
         await reader.CloseAsync();
 
         await _audit.LogAsync("supervision_exceptions", id, "INSERT", userId, null, new { request.EmployeeId, request.Period, request.ExceptionType, request.Notes });

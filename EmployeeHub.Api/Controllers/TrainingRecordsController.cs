@@ -16,10 +16,10 @@ public class TrainingRecordsController : ControllerBase
         _recordService = recordService;
     }
 
+    [RequirePermission]
     [HttpGet("employee/{employeeId:guid}")]
     public async Task<IActionResult> GetByEmployee(Guid employeeId)
     {
-        if (User.GetUserId() == null) return Unauthorized();
         if (!User.HasPermission("training_matrix.view") && User.GetEmployeeId() != employeeId)
             return StatusCode(403);
 
@@ -27,26 +27,25 @@ public class TrainingRecordsController : ControllerBase
         return Ok(records);
     }
 
+    [RequirePermission]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateTrainingRecordRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
+        var userId = User.GetUserId()!.Value;
 
         // Self-service: users can record their own training
         var isOwnRecord = User.GetEmployeeId() == request.EmployeeId;
         if (!User.HasPermission("training_records.record") && !isOwnRecord)
             return StatusCode(403);
 
-        var record = await _recordService.CreateAsync(request, userId.Value);
+        var record = await _recordService.CreateAsync(request, userId);
         return CreatedAtAction(nameof(GetByEmployee), new { employeeId = record.EmployeeId }, record);
     }
 
+    [RequirePermission]
     [HttpGet("status")]
     public async Task<IActionResult> GetTrainingStatus([FromQuery] string? category = null)
     {
-        if (User.GetUserId() == null) return Unauthorized();
-
         Guid? employeeFilter = null;
         if (!User.HasPermission("training_matrix.view"))
         {
@@ -59,11 +58,10 @@ public class TrainingRecordsController : ControllerBase
         return Ok(status);
     }
 
+    [RequirePermission("training_matrix.view")]
     [HttpGet("expiring")]
     public async Task<IActionResult> GetExpiring([FromQuery] int days = 30)
     {
-        if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("training_matrix.view")) return StatusCode(403);
 
         var expiring = await _recordService.GetExpiringAsync(days);
         return Ok(expiring);

@@ -1,4 +1,5 @@
 using EmployeeHub.Api.DTOs;
+using EmployeeHub.Api.Helpers;
 using EmployeeHub.Api.Models;
 using Npgsql;
 
@@ -99,12 +100,12 @@ public class EmployeeStatusService : IEmployeeStatusService
     {
         return new EmployeeStatus
         {
-            Id = reader.GetGuid(0),
-            Name = reader.GetString(1),
-            DisplayOrder = reader.GetInt32(2),
-            Active = reader.GetBoolean(3),
-            CreatedAt = reader.GetDateTime(4),
-            UpdatedAt = reader.GetDateTime(5)
+            Id = reader.GetGuid("id"),
+            Name = reader.GetString("name"),
+            DisplayOrder = reader.GetInt32("display_order"),
+            Active = reader.GetBoolean("active"),
+            CreatedAt = reader.GetDateTime("created_at"),
+            UpdatedAt = reader.GetDateTime("updated_at")
         };
     }
 }

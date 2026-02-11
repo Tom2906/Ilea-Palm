@@ -9,10 +9,12 @@ namespace EmployeeHub.Api.Controllers;
 public class SeedController : ControllerBase
 {
     private readonly IDbService _db;
+    private readonly IWebHostEnvironment _env;
 
-    public SeedController(IDbService db)
+    public SeedController(IDbService db, IWebHostEnvironment env)
     {
         _db = db;
+        _env = env;
     }
 
     /// <summary>
@@ -21,6 +23,10 @@ public class SeedController : ControllerBase
     [HttpPost("admin")]
     public async Task<IActionResult> SeedAdmin()
     {
+        // Only allow seeding in development — disabled on live servers
+        if (!_env.IsDevelopment())
+            return NotFound();
+
         await using var conn = await _db.GetConnectionAsync();
 
         // Check if any users exist
@@ -55,7 +61,6 @@ public class SeedController : ControllerBase
         {
             message = "Admin user created. Change the password after first login.",
             email = reader.GetString(1),
-            defaultPassword = "Admin123!",
             id = reader.GetGuid(0)
         });
     }
@@ -66,6 +71,10 @@ public class SeedController : ControllerBase
     [HttpPost("data")]
     public async Task<IActionResult> SeedData()
     {
+        // Only allow seeding in development — disabled on live servers
+        if (!_env.IsDevelopment())
+            return NotFound();
+
         await using var conn = await _db.GetConnectionAsync();
 
         await using var checkCmd = new NpgsqlCommand("SELECT COUNT(*) FROM training_courses", conn);

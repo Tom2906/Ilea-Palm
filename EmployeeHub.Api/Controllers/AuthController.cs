@@ -36,28 +36,26 @@ public class AuthController : ControllerBase
         return Ok(response);
     }
 
+    [RequirePermission]
     [HttpPost("change-password")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null)
-            return Unauthorized();
+        var userId = User.GetUserId()!.Value;
 
-        var success = await _authService.ChangePasswordAsync(userId.Value, request);
+        var (success, error) = await _authService.ChangePasswordAsync(userId, request);
         if (!success)
-            return BadRequest(new { error = "Current password is incorrect" });
+            return BadRequest(new { error });
 
         return Ok(new { message = "Password changed successfully" });
     }
 
+    [RequirePermission]
     [HttpGet("me")]
     public async Task<IActionResult> GetCurrentUser()
     {
-        var userId = User.GetUserId();
-        if (userId == null)
-            return Unauthorized();
+        var userId = User.GetUserId()!.Value;
 
-        var user = await _authService.GetUserByIdAsync(userId.Value);
+        var user = await _authService.GetUserByIdAsync(userId);
         if (user == null)
             return Unauthorized();
 

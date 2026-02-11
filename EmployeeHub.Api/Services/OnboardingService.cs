@@ -1,4 +1,5 @@
 using EmployeeHub.Api.DTOs;
+using EmployeeHub.Api.Helpers;
 using EmployeeHub.Api.Models;
 using Npgsql;
 
@@ -115,17 +116,17 @@ public class OnboardingService : IOnboardingService
         {
             records.Add(new OnboardingRecordResponse
             {
-                Id = reader.GetGuid(0),
-                EmployeeId = reader.GetGuid(1),
-                ItemId = reader.GetGuid(2),
-                ItemName = reader.GetString(3),
-                ItemDescription = reader.IsDBNull(4) ? null : reader.GetString(4),
-                DisplayOrder = reader.GetInt32(5),
-                Status = reader.GetString(6),
-                CompletedDate = reader.IsDBNull(7) ? null : DateOnly.FromDateTime(reader.GetDateTime(7)),
-                Notes = reader.IsDBNull(8) ? null : reader.GetString(8),
-                CreatedAt = reader.GetDateTime(9),
-                UpdatedAt = reader.GetDateTime(10)
+                Id = reader.GetGuid("id"),
+                EmployeeId = reader.GetGuid("employee_id"),
+                ItemId = reader.GetGuid("item_id"),
+                ItemName = reader.GetString("name"),
+                ItemDescription = reader.GetStringOrNull("description"),
+                DisplayOrder = reader.GetInt32("display_order"),
+                Status = reader.GetString("status"),
+                CompletedDate = reader.GetDateOnlyOrNull("completed_date"),
+                Notes = reader.GetStringOrNull("notes"),
+                CreatedAt = reader.GetDateTime("created_at"),
+                UpdatedAt = reader.GetDateTime("updated_at")
             });
         }
         return records;
@@ -157,7 +158,7 @@ public class OnboardingService : IOnboardingService
         await using var reader = await cmd.ExecuteReaderAsync();
         if (!await reader.ReadAsync()) return null;
 
-        var id = reader.GetGuid(0);
+        var id = reader.GetGuid("id");
         await reader.CloseAsync();
 
         await _audit.LogAsync("onboarding_records", id, "update", userId, newData: request);
@@ -192,13 +193,13 @@ public class OnboardingService : IOnboardingService
     {
         return new OnboardingItem
         {
-            Id = reader.GetGuid(0),
-            Name = reader.GetString(1),
-            Description = reader.IsDBNull(2) ? null : reader.GetString(2),
-            DisplayOrder = reader.GetInt32(3),
-            Active = reader.GetBoolean(4),
-            CreatedAt = reader.GetDateTime(5),
-            UpdatedAt = reader.GetDateTime(6)
+            Id = reader.GetGuid("id"),
+            Name = reader.GetString("name"),
+            Description = reader.GetStringOrNull("description"),
+            DisplayOrder = reader.GetInt32("display_order"),
+            Active = reader.GetBoolean("active"),
+            CreatedAt = reader.GetDateTime("created_at"),
+            UpdatedAt = reader.GetDateTime("updated_at")
         };
     }
 }

@@ -18,21 +18,20 @@ public class EmployeesController : ControllerBase
         _onboardingService = onboardingService;
     }
 
+    [RequirePermission("employees.view")]
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] bool includeInactive = false)
     {
-        if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("employees.view")) return StatusCode(403);
 
         var employees = await _employeeService.GetAllAsync(includeInactive);
         var response = employees.Select(e => MapToResponse(e));
         return Ok(response);
     }
 
+    [RequirePermission]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        if (User.GetUserId() == null) return Unauthorized();
         if (!User.HasPermission("employees.view") && User.GetEmployeeId() != id)
             return StatusCode(403);
 
@@ -42,42 +41,47 @@ public class EmployeesController : ControllerBase
         return Ok(MapToResponse(employee));
     }
 
+    [RequirePermission]
+    [HttpGet("roles")]
+    public async Task<IActionResult> GetDistinctRoles()
+    {
+        var roles = await _employeeService.GetDistinctRolesAsync();
+        return Ok(roles);
+    }
+
+    [RequirePermission("employees.add")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateEmployeeRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("employees.add")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var employee = await _employeeService.CreateAsync(request, userId.Value);
+        var employee = await _employeeService.CreateAsync(request, userId);
 
         // Auto-create onboarding records for new employee
-        await _onboardingService.CreateRecordsForNewEmployeeAsync(employee.Id, userId.Value);
+        await _onboardingService.CreateRecordsForNewEmployeeAsync(employee.Id, userId);
 
         return CreatedAtAction(nameof(GetById), new { id = employee.Id }, MapToResponse(employee));
     }
 
+    [RequirePermission("employees.edit")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateEmployeeRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("employees.edit")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var employee = await _employeeService.UpdateAsync(id, request, userId.Value);
+        var employee = await _employeeService.UpdateAsync(id, request, userId);
         if (employee == null) return NotFound();
 
         return Ok(MapToResponse(employee));
     }
 
+    [RequirePermission("employees.delete")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("employees.delete")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var success = await _employeeService.SoftDeleteAsync(id, userId.Value);
+        var success = await _employeeService.SoftDeleteAsync(id, userId);
         if (!success) return NotFound();
 
         return Ok(new { message = "Employee deactivated" });

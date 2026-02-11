@@ -8,11 +8,8 @@ public class DbService : IDbService
 
     public DbService(IConfiguration configuration)
     {
-        var dbPassword = configuration["Supabase:DbPassword"]
-            ?? throw new InvalidOperationException("Supabase:DbPassword not configured");
-
-        // Session pooler connection (IPv4 compatible)
-        _connectionString = $"Host=aws-1-eu-west-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.iwycjvbmifcirnyknnlu;Password={dbPassword};SSL Mode=Require;Trust Server Certificate=true";
+        _connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection not configured");
     }
 
     public async Task<NpgsqlConnection> GetConnectionAsync()

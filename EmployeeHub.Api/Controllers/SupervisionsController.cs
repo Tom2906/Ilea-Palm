@@ -16,101 +16,92 @@ public class SupervisionsController : ControllerBase
         _supervisionService = supervisionService;
     }
 
+    [RequirePermission("supervisions.view")]
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] Guid? employeeId = null, [FromQuery] Guid? supervisorId = null, [FromQuery] string? period = null)
     {
-        if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("supervisions.view")) return StatusCode(403);
 
         var supervisions = await _supervisionService.GetAllAsync(employeeId, supervisorId, period);
         return Ok(supervisions);
     }
 
+    [RequirePermission("supervisions.view")]
     [HttpGet("employee/{employeeId:guid}")]
     public async Task<IActionResult> GetByEmployee(Guid employeeId)
     {
-        if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("supervisions.view")) return StatusCode(403);
 
         var supervisions = await _supervisionService.GetByEmployeeAsync(employeeId);
         return Ok(supervisions);
     }
 
+    [RequirePermission("supervisions.view")]
     [HttpGet("supervisor/{supervisorId:guid}")]
     public async Task<IActionResult> GetBySupervisor(Guid supervisorId)
     {
-        if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("supervisions.view")) return StatusCode(403);
 
         var supervisions = await _supervisionService.GetBySupervisorAsync(supervisorId);
         return Ok(supervisions);
     }
 
+    [RequirePermission("supervisions.view")]
     [HttpGet("status")]
     public async Task<IActionResult> GetStatus()
     {
-        if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("supervisions.view")) return StatusCode(403);
 
         var statuses = await _supervisionService.GetStatusSummaryAsync();
         return Ok(statuses);
     }
 
+    [RequirePermission("supervisions.view")]
     [HttpGet("summary")]
     public async Task<IActionResult> GetSummary()
     {
-        if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("supervisions.view")) return StatusCode(403);
 
         var summary = await _supervisionService.GetSummaryStatsAsync();
         return Ok(summary);
     }
 
+    [RequirePermission("supervisions.add")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateSupervisionRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("supervisions.add")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var supervision = await _supervisionService.CreateAsync(request, userId.Value);
+        var supervision = await _supervisionService.CreateAsync(request, userId);
         return CreatedAtAction(nameof(GetAll), new { }, supervision);
     }
 
+    [RequirePermission("supervisions.edit")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateSupervisionRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("supervisions.edit")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var supervision = await _supervisionService.UpdateAsync(id, request, userId.Value);
+        var supervision = await _supervisionService.UpdateAsync(id, request, userId);
         if (supervision == null) return NotFound();
 
         return Ok(supervision);
     }
 
+    [RequirePermission("supervisions.delete")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("supervisions.delete")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var success = await _supervisionService.DeleteAsync(id, userId.Value);
+        var success = await _supervisionService.DeleteAsync(id, userId);
         if (!success) return NotFound();
 
         return Ok(new { message = "Supervision deleted" });
     }
 
+    [RequirePermission("supervisions.edit")]
     [HttpPut("required-count")]
     public async Task<IActionResult> UpdateRequiredCount([FromBody] UpdateRequiredCountRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("supervisions.edit")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var updated = await _supervisionService.UpdateRequiredCountAsync(request.EmployeeId, request.Period, request.RequiredCount, userId.Value);
+        var updated = await _supervisionService.UpdateRequiredCountAsync(request.EmployeeId, request.Period, request.RequiredCount, userId);
         return Ok(new { updated });
     }
 }

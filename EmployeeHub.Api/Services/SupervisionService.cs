@@ -1,4 +1,5 @@
 using EmployeeHub.Api.DTOs;
+using EmployeeHub.Api.Helpers;
 using EmployeeHub.Api.Models;
 using Npgsql;
 
@@ -51,17 +52,17 @@ public class SupervisionService : ISupervisionService
         {
             supervisions.Add(new SupervisionResponse
             {
-                Id = reader.GetGuid(0),
-                EmployeeId = reader.GetGuid(1),
-                ConductedById = reader.GetGuid(2),
-                SupervisionDate = DateOnly.FromDateTime(reader.GetDateTime(3)),
-                Period = reader.GetString(4),
-                Notes = reader.IsDBNull(5) ? null : reader.GetString(5),
-                CreatedAt = reader.GetDateTime(6),
-                IsCompleted = reader.GetBoolean(7),
-                RequiredCount = reader.GetInt32(8),
-                EmployeeName = reader.GetString(9),
-                ConductedByName = reader.GetString(10)
+                Id = reader.GetGuid("id"),
+                EmployeeId = reader.GetGuid("employee_id"),
+                ConductedById = reader.GetGuid("conducted_by_id"),
+                SupervisionDate = reader.GetDateOnly("supervision_date"),
+                Period = reader.GetString("period"),
+                Notes = reader.GetStringOrNull("notes"),
+                CreatedAt = reader.GetDateTime("created_at"),
+                IsCompleted = reader.GetBoolean("is_completed"),
+                RequiredCount = reader.GetInt32("required_count"),
+                EmployeeName = reader.GetString("employee_name"),
+                ConductedByName = reader.GetString("conducted_by_name")
             });
         }
 
@@ -89,20 +90,20 @@ public class SupervisionService : ISupervisionService
         {
             statuses.Add(new SupervisionStatusResponse
             {
-                EmployeeId = reader.GetGuid(0),
-                FirstName = reader.GetString(1),
-                LastName = reader.GetString(2),
-                Email = reader.GetString(3),
-                Role = reader.GetString(4),
-                Department = reader.IsDBNull(5) ? null : reader.GetString(5),
-                ReportsTo = reader.IsDBNull(6) ? null : reader.GetGuid(6),
-                SupervisionFrequency = reader.GetInt32(7),
-                SupervisorName = reader.IsDBNull(8) ? null : reader.GetString(8),
-                LastSupervisionDate = reader.IsDBNull(9) ? null : DateOnly.FromDateTime(reader.GetDateTime(9)),
-                DaysSinceLastSupervision = reader.IsDBNull(10) ? null : reader.GetInt32(10),
-                Status = reader.GetString(11),
-                StartDate = DateOnly.FromDateTime(reader.GetDateTime(12)),
-                EmployeeStatus = reader.IsDBNull(13) ? null : reader.GetString(13)
+                EmployeeId = reader.GetGuid("employee_id"),
+                FirstName = reader.GetString("first_name"),
+                LastName = reader.GetString("last_name"),
+                Email = reader.GetString("email"),
+                Role = reader.GetString("role"),
+                Department = reader.GetStringOrNull("department"),
+                ReportsTo = reader.GetGuidOrNull("reports_to"),
+                SupervisionFrequency = reader.GetInt32("supervision_frequency"),
+                SupervisorName = reader.GetStringOrNull("supervisor_name"),
+                LastSupervisionDate = reader.GetDateOnlyOrNull("last_supervision_date"),
+                DaysSinceLastSupervision = reader.GetInt32OrNull("days_since_last_supervision"),
+                Status = reader.GetString("status"),
+                StartDate = reader.GetDateOnly("start_date"),
+                EmployeeStatus = reader.GetStringOrNull("employee_status")
             });
         }
 
@@ -144,8 +145,8 @@ public class SupervisionService : ISupervisionService
 
         await using var reader = await cmd.ExecuteReaderAsync();
         await reader.ReadAsync();
-        var id = reader.GetGuid(0);
-        var createdAt = reader.GetDateTime(1);
+        var id = reader.GetGuid("id");
+        var createdAt = reader.GetDateTime("created_at");
         await reader.CloseAsync();
 
         await _audit.LogAsync("supervision_records", id, "INSERT", recordedBy, null, new { request.EmployeeId, request.ConductedById, request.SupervisionDate, period, request.Notes });

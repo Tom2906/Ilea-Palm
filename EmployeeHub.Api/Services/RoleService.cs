@@ -1,4 +1,5 @@
 using EmployeeHub.Api.DTOs;
+using EmployeeHub.Api.Helpers;
 using Npgsql;
 
 namespace EmployeeHub.Api.Services;
@@ -30,7 +31,8 @@ public class RoleService : IRoleService
         // Tools
         "day_in_life.use",
         // Administration (scope is always "all" — effectively boolean)
-        "settings.manage", "notifications.manage", "audit_log.view", "users.manage", "employee_statuses.manage"
+        "settings.manage", "notifications.manage", "audit_log.view", "users.manage", "employee_statuses.manage",
+        "gridviews.manage"
     };
 
 
@@ -57,13 +59,13 @@ public class RoleService : IRoleService
         {
             roles.Add(new RoleResponse
             {
-                Id = reader.GetGuid(0),
-                Name = reader.GetString(1),
-                Description = reader.IsDBNull(2) ? null : reader.GetString(2),
-                IsSystem = reader.GetBoolean(3),
-                CreatedAt = reader.GetDateTime(4),
-                UpdatedAt = reader.GetDateTime(5),
-                UserCount = reader.GetInt32(6)
+                Id = reader.GetGuid("id"),
+                Name = reader.GetString("name"),
+                Description = reader.GetStringOrNull("description"),
+                IsSystem = reader.GetBoolean("is_system"),
+                CreatedAt = reader.GetDateTime("created_at"),
+                UpdatedAt = reader.GetDateTime("updated_at"),
+                UserCount = reader.GetInt32("user_count")
             });
         }
         await reader.CloseAsync();
@@ -92,13 +94,13 @@ public class RoleService : IRoleService
 
         var role = new RoleResponse
         {
-            Id = reader.GetGuid(0),
-            Name = reader.GetString(1),
-            Description = reader.IsDBNull(2) ? null : reader.GetString(2),
-            IsSystem = reader.GetBoolean(3),
-            CreatedAt = reader.GetDateTime(4),
-            UpdatedAt = reader.GetDateTime(5),
-            UserCount = reader.GetInt32(6)
+            Id = reader.GetGuid("id"),
+            Name = reader.GetString("name"),
+            Description = reader.GetStringOrNull("description"),
+            IsSystem = reader.GetBoolean("is_system"),
+            CreatedAt = reader.GetDateTime("created_at"),
+            UpdatedAt = reader.GetDateTime("updated_at"),
+            UserCount = reader.GetInt32("user_count")
         };
         await reader.CloseAsync();
 
@@ -120,9 +122,9 @@ public class RoleService : IRoleService
 
         await using var reader = await cmd.ExecuteReaderAsync();
         await reader.ReadAsync();
-        var roleId = reader.GetGuid(0);
-        var createdAt = reader.GetDateTime(1);
-        var updatedAt = reader.GetDateTime(2);
+        var roleId = reader.GetGuid("id");
+        var createdAt = reader.GetDateTime("created_at");
+        var updatedAt = reader.GetDateTime("updated_at");
         await reader.CloseAsync();
 
         await InsertPermissionsAsync(conn, tx, roleId, request.Permissions);
@@ -218,7 +220,7 @@ public class RoleService : IRoleService
         var permissions = new Dictionary<string, string>();
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
-            permissions[reader.GetString(0)] = reader.GetString(1);
+            permissions[reader.GetString("permission")] = reader.GetString("scope");
 
         return permissions;
     }

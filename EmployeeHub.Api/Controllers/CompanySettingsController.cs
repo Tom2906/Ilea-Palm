@@ -15,23 +15,35 @@ public class CompanySettingsController : ControllerBase
         _service = service;
     }
 
+    [RequirePermission]
     [HttpGet]
     public async Task<IActionResult> Get()
     {
-        if (User.GetUserId() == null) return Unauthorized();
-
         var settings = await _service.GetAsync();
+
+        // Never send API keys to the browser
+        settings.AiApiKey = null;
+        settings.AnthropicApiKey = null;
+        settings.OpenaiApiKey = null;
+        settings.GeminiApiKey = null;
+
         return Ok(settings);
     }
 
+    [RequirePermission("settings.manage")]
     [HttpPut]
     public async Task<IActionResult> Update([FromBody] UpdateCompanySettingsRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("settings.manage")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var settings = await _service.UpdateAsync(request, userId.Value);
+        var settings = await _service.UpdateAsync(request, userId);
+
+        // Never send API keys to the browser
+        settings.AiApiKey = null;
+        settings.AnthropicApiKey = null;
+        settings.OpenaiApiKey = null;
+        settings.GeminiApiKey = null;
+
         return Ok(settings);
     }
 }

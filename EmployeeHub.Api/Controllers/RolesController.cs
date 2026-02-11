@@ -16,79 +16,63 @@ public class RolesController : ControllerBase
         _roleService = roleService;
     }
 
+    [RequirePermission("users.manage")]
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("users.manage")) return StatusCode(403);
 
         var roles = await _roleService.GetAllAsync();
         return Ok(roles);
     }
 
+    [RequirePermission("users.manage")]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("users.manage")) return StatusCode(403);
 
         var role = await _roleService.GetByIdAsync(id);
         if (role == null) return NotFound();
         return Ok(role);
     }
 
+    [RequirePermission("users.manage")]
     [HttpGet("permissions")]
     public async Task<IActionResult> GetPermissionKeys()
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("users.manage")) return StatusCode(403);
 
         var keys = await _roleService.GetAllPermissionKeysAsync();
         return Ok(keys);
     }
 
+    [RequirePermission("users.manage")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateRoleRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("users.manage")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var role = await _roleService.CreateAsync(request, userId.Value);
+        var role = await _roleService.CreateAsync(request, userId);
         return CreatedAtAction(nameof(GetById), new { id = role.Id }, role);
     }
 
+    [RequirePermission("users.manage")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateRoleRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("users.manage")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var role = await _roleService.UpdateAsync(id, request, userId.Value);
+        var role = await _roleService.UpdateAsync(id, request, userId);
         if (role == null) return NotFound();
         return Ok(role);
     }
 
+    [RequirePermission("users.manage")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("users.manage")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        try
-        {
-            var success = await _roleService.DeleteAsync(id, userId.Value);
-            if (!success) return NotFound();
-            return Ok(new { message = "Role deleted" });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        var success = await _roleService.DeleteAsync(id, userId);
+        if (!success) return NotFound();
+        return Ok(new { message = "Role deleted" });
     }
 }

@@ -1,4 +1,5 @@
 using EmployeeHub.Api.DTOs;
+using EmployeeHub.Api.Helpers;
 using EmployeeHub.Api.Models;
 using Npgsql;
 
@@ -30,14 +31,14 @@ public class RotaService : IRotaService
         {
             types.Add(new ShiftType
             {
-                Id = reader.GetGuid(0),
-                Code = reader.GetString(1),
-                Name = reader.GetString(2),
-                DefaultHours = reader.GetDecimal(3),
-                IncludesSleep = reader.GetBoolean(4),
-                DisplayColor = reader.IsDBNull(5) ? null : reader.GetString(5),
-                SortOrder = reader.GetInt32(6),
-                IsActive = reader.GetBoolean(7)
+                Id = reader.GetGuid("id"),
+                Code = reader.GetString("code"),
+                Name = reader.GetString("name"),
+                DefaultHours = reader.GetDecimal("default_hours"),
+                IncludesSleep = reader.GetBoolean("includes_sleep"),
+                DisplayColor = reader.GetStringOrNull("display_color"),
+                SortOrder = reader.GetInt32("sort_order"),
+                IsActive = reader.GetBoolean("is_active")
             });
         }
         return types;
@@ -79,10 +80,10 @@ public class RotaService : IRotaService
             {
                 employees.Add(new RotaEmployeeResponse
                 {
-                    EmployeeId = reader.GetGuid(0),
-                    FirstName = reader.GetString(1),
-                    LastName = reader.GetString(2),
-                    Role = reader.GetString(3)
+                    EmployeeId = reader.GetGuid("id"),
+                    FirstName = reader.GetString("first_name"),
+                    LastName = reader.GetString("last_name"),
+                    Role = reader.GetString("role")
                 });
             }
         }
@@ -105,8 +106,8 @@ public class RotaService : IRotaService
         {
             while (await reader.ReadAsync())
             {
-                var employeeId = reader.GetGuid(1);
-                var date = DateOnly.FromDateTime(reader.GetDateTime(2));
+                var employeeId = reader.GetGuid("employee_id");
+                var date = reader.GetDateOnly("date");
                 var dateKey = date.ToString("yyyy-MM-dd");
 
                 if (!shiftsByEmployee.ContainsKey(employeeId))
@@ -114,15 +115,15 @@ public class RotaService : IRotaService
 
                 shiftsByEmployee[employeeId][dateKey] = new ShiftResponse
                 {
-                    Id = reader.GetGuid(0),
+                    Id = reader.GetGuid("id"),
                     EmployeeId = employeeId,
                     Date = date,
-                    ShiftTypeId = reader.GetGuid(3),
-                    ShiftTypeCode = reader.GetString(4),
-                    Hours = reader.GetDecimal(5),
-                    IncludesSleep = reader.GetBoolean(6),
-                    DisplayColor = reader.IsDBNull(7) ? null : reader.GetString(7),
-                    Notes = reader.IsDBNull(8) ? null : reader.GetString(8)
+                    ShiftTypeId = reader.GetGuid("shift_type_id"),
+                    ShiftTypeCode = reader.GetString("code"),
+                    Hours = reader.GetDecimal("hours"),
+                    IncludesSleep = reader.GetBoolean("includes_sleep"),
+                    DisplayColor = reader.GetStringOrNull("display_color"),
+                    Notes = reader.GetStringOrNull("notes")
                 };
             }
         }
@@ -257,10 +258,10 @@ public class RotaService : IRotaService
         {
             hours.Add(new RotaMonthlyHours
             {
-                Id = reader.GetGuid(0),
-                Year = reader.GetInt32(1),
-                Month = reader.GetInt32(2),
-                ContractedHours = reader.GetDecimal(3)
+                Id = reader.GetGuid("id"),
+                Year = reader.GetInt32("year"),
+                Month = reader.GetInt32("month"),
+                ContractedHours = reader.GetDecimal("contracted_hours")
             });
         }
         return hours;
@@ -309,19 +310,19 @@ public class RotaService : IRotaService
 
         return new Shift
         {
-            Id = reader.GetGuid(0),
-            EmployeeId = reader.GetGuid(1),
-            Date = DateOnly.FromDateTime(reader.GetDateTime(2)),
-            ShiftTypeId = reader.GetGuid(3),
-            ShiftTypeCode = reader.GetString(4),
-            ShiftTypeName = reader.GetString(5),
-            Hours = reader.GetDecimal(6),
-            DefaultHours = reader.GetDecimal(7),
-            IncludesSleep = reader.GetBoolean(8),
-            DisplayColor = reader.IsDBNull(9) ? null : reader.GetString(9),
-            Notes = reader.IsDBNull(10) ? null : reader.GetString(10),
-            CreatedAt = reader.GetDateTime(11),
-            UpdatedAt = reader.GetDateTime(12)
+            Id = reader.GetGuid("id"),
+            EmployeeId = reader.GetGuid("employee_id"),
+            Date = reader.GetDateOnly("date"),
+            ShiftTypeId = reader.GetGuid("shift_type_id"),
+            ShiftTypeCode = reader.GetString("code"),
+            ShiftTypeName = reader.GetString("name"),
+            Hours = reader.GetDecimal("hours"),
+            DefaultHours = reader.GetDecimal("default_hours"),
+            IncludesSleep = reader.GetBoolean("includes_sleep"),
+            DisplayColor = reader.GetStringOrNull("display_color"),
+            Notes = reader.GetStringOrNull("notes"),
+            CreatedAt = reader.GetDateTime("created_at"),
+            UpdatedAt = reader.GetDateTime("updated_at")
         };
     }
 }

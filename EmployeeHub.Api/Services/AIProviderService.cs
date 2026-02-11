@@ -1,4 +1,5 @@
 using EmployeeHub.Api.DTOs;
+using EmployeeHub.Api.Helpers;
 using EmployeeHub.Api.Models;
 using Npgsql;
 
@@ -27,16 +28,7 @@ public class AIProviderService : IAIProviderService
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            providers.Add(new AIProvider
-            {
-                Id = reader.GetGuid(0),
-                Provider = reader.GetString(1),
-                Name = reader.GetString(2),
-                ApiKey = reader.GetString(3),
-                IsActive = reader.GetBoolean(4),
-                CreatedAt = reader.GetDateTime(5),
-                UpdatedAt = reader.GetDateTime(6)
-            });
+            providers.Add(ReadProvider(reader));
         }
         return providers;
     }
@@ -53,16 +45,7 @@ public class AIProviderService : IAIProviderService
         await using var reader = await cmd.ExecuteReaderAsync();
         if (await reader.ReadAsync())
         {
-            return new AIProvider
-            {
-                Id = reader.GetGuid(0),
-                Provider = reader.GetString(1),
-                Name = reader.GetString(2),
-                ApiKey = reader.GetString(3),
-                IsActive = reader.GetBoolean(4),
-                CreatedAt = reader.GetDateTime(5),
-                UpdatedAt = reader.GetDateTime(6)
-            };
+            return ReadProvider(reader);
         }
         return null;
     }
@@ -82,16 +65,7 @@ public class AIProviderService : IAIProviderService
         await using var reader = await cmd.ExecuteReaderAsync();
         await reader.ReadAsync();
 
-        var created = new AIProvider
-        {
-            Id = reader.GetGuid(0),
-            Provider = reader.GetString(1),
-            Name = reader.GetString(2),
-            ApiKey = reader.GetString(3),
-            IsActive = reader.GetBoolean(4),
-            CreatedAt = reader.GetDateTime(5),
-            UpdatedAt = reader.GetDateTime(6)
-        };
+        var created = ReadProvider(reader);
 
         await reader.CloseAsync();
         await _audit.LogAsync("ai_providers", created.Id, "create", userId, oldData: null, newData: request);
@@ -122,16 +96,7 @@ public class AIProviderService : IAIProviderService
         await using var reader = await cmd.ExecuteReaderAsync();
         await reader.ReadAsync();
 
-        var updated = new AIProvider
-        {
-            Id = reader.GetGuid(0),
-            Provider = reader.GetString(1),
-            Name = reader.GetString(2),
-            ApiKey = reader.GetString(3),
-            IsActive = reader.GetBoolean(4),
-            CreatedAt = reader.GetDateTime(5),
-            UpdatedAt = reader.GetDateTime(6)
-        };
+        var updated = ReadProvider(reader);
 
         await reader.CloseAsync();
         await _audit.LogAsync("ai_providers", id, "update", userId, oldData: existing, newData: request);
@@ -218,6 +183,20 @@ public class AIProviderService : IAIProviderService
                 new() { Id = "gpt-4-turbo", Name = "GPT-4 Turbo", Description = "Previous generation" }
             },
             _ => new List<AIModelResponse>()
+        };
+    }
+
+    private static AIProvider ReadProvider(NpgsqlDataReader reader)
+    {
+        return new AIProvider
+        {
+            Id = reader.GetGuid("id"),
+            Provider = reader.GetString("provider"),
+            Name = reader.GetString("name"),
+            ApiKey = reader.GetString("api_key"),
+            IsActive = reader.GetBoolean("is_active"),
+            CreatedAt = reader.GetDateTime("created_at"),
+            UpdatedAt = reader.GetDateTime("updated_at")
         };
     }
 }

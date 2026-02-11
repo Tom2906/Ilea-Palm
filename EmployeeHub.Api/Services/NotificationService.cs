@@ -1,4 +1,5 @@
 using EmployeeHub.Api.DTOs;
+using EmployeeHub.Api.Helpers;
 using MailKit.Net.Smtp;
 using MimeKit;
 using Npgsql;
@@ -35,18 +36,18 @@ public class NotificationService : INotificationService
         {
             pending.Add(new PendingNotificationResponse
             {
-                EmployeeId = reader.GetGuid(0),
-                EmployeeName = $"{reader.GetString(1)} {reader.GetString(2)}",
-                EmployeeEmail = reader.GetString(3),
-                CourseId = reader.GetGuid(4),
-                CourseName = reader.GetString(5),
-                Category = reader.GetString(6),
-                TrainingRecordId = reader.IsDBNull(7) ? null : reader.GetGuid(7),
-                ExpiryDate = reader.IsDBNull(8) ? null : DateOnly.FromDateTime(reader.GetDateTime(8)),
-                DaysUntilExpiry = reader.IsDBNull(9) ? null : reader.GetInt32(9),
-                Status = reader.GetString(10),
-                NotifyEmployee = reader.GetBoolean(11),
-                NotifyAdmin = reader.GetBoolean(12)
+                EmployeeId = reader.GetGuid("employee_id"),
+                EmployeeName = $"{reader.GetString("first_name")} {reader.GetString("last_name")}",
+                EmployeeEmail = reader.GetString("email"),
+                CourseId = reader.GetGuid("course_id"),
+                CourseName = reader.GetString("course_name"),
+                Category = reader.GetString("category"),
+                TrainingRecordId = reader.GetGuidOrNull("training_record_id"),
+                ExpiryDate = reader.GetDateOnlyOrNull("expiry_date"),
+                DaysUntilExpiry = reader.GetInt32OrNull("days_until_expiry"),
+                Status = reader.GetString("status"),
+                NotifyEmployee = reader.GetBoolean("notify_employee"),
+                NotifyAdmin = reader.GetBoolean("notify_admin")
             });
         }
         return pending;
@@ -147,17 +148,17 @@ public class NotificationService : INotificationService
         {
             logs.Add(new NotificationLogResponse
             {
-                Id = reader.GetGuid(0),
-                TrainingRecordId = reader.GetGuid(1),
-                EmployeeId = reader.GetGuid(2),
-                CourseId = reader.GetGuid(3),
-                RecipientEmail = reader.GetString(4),
-                RecipientType = reader.GetString(5),
-                NotificationType = reader.GetString(6),
-                SentAt = reader.GetDateTime(7),
-                DaysUntilExpiry = reader.IsDBNull(8) ? null : reader.GetInt32(8),
-                EmployeeName = reader.GetString(9),
-                CourseName = reader.GetString(10)
+                Id = reader.GetGuid("id"),
+                TrainingRecordId = reader.GetGuid("training_record_id"),
+                EmployeeId = reader.GetGuid("employee_id"),
+                CourseId = reader.GetGuid("course_id"),
+                RecipientEmail = reader.GetString("recipient_email"),
+                RecipientType = reader.GetString("recipient_type"),
+                NotificationType = reader.GetString("notification_type"),
+                SentAt = reader.GetDateTime("sent_at"),
+                DaysUntilExpiry = reader.GetInt32OrNull("days_until_expiry"),
+                EmployeeName = reader.GetString("employee_name"),
+                CourseName = reader.GetString("course_name")
             });
         }
         return logs;
@@ -179,7 +180,7 @@ public class NotificationService : INotificationService
         await using var reader = await cmd.ExecuteReaderAsync();
         var emails = new List<string>();
         while (await reader.ReadAsync())
-            emails.Add(reader.GetString(0));
+            emails.Add(reader.GetString("email"));
         return emails;
     }
 

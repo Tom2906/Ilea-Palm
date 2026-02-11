@@ -16,11 +16,10 @@ public class RotaController : ControllerBase
         _rotaService = rotaService;
     }
 
+    [RequirePermission]
     [HttpGet]
     public async Task<IActionResult> GetMonth([FromQuery] int year, [FromQuery] int month)
     {
-        if (User.GetUserId() == null) return Unauthorized();
-
         if (month < 1 || month > 12 || year < 2000 || year > 2100)
             return BadRequest(new { error = "Invalid year or month" });
 
@@ -37,11 +36,10 @@ public class RotaController : ControllerBase
         return Ok(result);
     }
 
+    [RequirePermission]
     [HttpGet("shift-types")]
     public async Task<IActionResult> GetShiftTypes()
     {
-        if (User.GetUserId() == null) return Unauthorized();
-
         var types = await _rotaService.GetShiftTypesAsync();
         var response = types.Select(st => new ShiftTypeResponse
         {
@@ -56,72 +54,46 @@ public class RotaController : ControllerBase
         return Ok(response);
     }
 
+    [RequirePermission("rotas.add")]
     [HttpPost("shifts")]
     public async Task<IActionResult> CreateShift([FromBody] CreateShiftRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("rotas.add")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var shift = await _rotaService.CreateShiftAsync(request, userId.Value);
+        var shift = await _rotaService.CreateShiftAsync(request, userId);
         if (shift == null) return BadRequest(new { error = "Failed to create shift" });
 
-        return Ok(new ShiftResponse
-        {
-            Id = shift.Id,
-            EmployeeId = shift.EmployeeId,
-            Date = shift.Date,
-            ShiftTypeId = shift.ShiftTypeId,
-            ShiftTypeCode = shift.ShiftTypeCode,
-            Hours = shift.Hours ?? shift.DefaultHours,
-            IncludesSleep = shift.IncludesSleep,
-            DisplayColor = shift.DisplayColor,
-            Notes = shift.Notes
-        });
+        return Ok(ToShiftResponse(shift));
     }
 
+    [RequirePermission("rotas.edit")]
     [HttpPut("shifts/{id:guid}")]
     public async Task<IActionResult> UpdateShift(Guid id, [FromBody] UpdateShiftRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("rotas.edit")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var shift = await _rotaService.UpdateShiftAsync(id, request, userId.Value);
+        var shift = await _rotaService.UpdateShiftAsync(id, request, userId);
         if (shift == null) return NotFound();
 
-        return Ok(new ShiftResponse
-        {
-            Id = shift.Id,
-            EmployeeId = shift.EmployeeId,
-            Date = shift.Date,
-            ShiftTypeId = shift.ShiftTypeId,
-            ShiftTypeCode = shift.ShiftTypeCode,
-            Hours = shift.Hours ?? shift.DefaultHours,
-            IncludesSleep = shift.IncludesSleep,
-            DisplayColor = shift.DisplayColor,
-            Notes = shift.Notes
-        });
+        return Ok(ToShiftResponse(shift));
     }
 
+    [RequirePermission("rotas.delete")]
     [HttpDelete("shifts/{id:guid}")]
     public async Task<IActionResult> DeleteShift(Guid id)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("rotas.delete")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var success = await _rotaService.DeleteShiftAsync(id, userId.Value);
+        var success = await _rotaService.DeleteShiftAsync(id, userId);
         if (!success) return NotFound();
 
         return Ok(new { message = "Shift deleted" });
     }
 
+    [RequirePermission]
     [HttpGet("monthly-hours")]
     public async Task<IActionResult> GetMonthlyHours([FromQuery] int year)
     {
-        if (User.GetUserId() == null) return Unauthorized();
-
         var hours = await _rotaService.GetMonthlyHoursAsync(year);
         var response = hours.Select(h => new MonthlyHoursResponse
         {
@@ -133,17 +105,16 @@ public class RotaController : ControllerBase
         return Ok(response);
     }
 
+    [RequirePermission("rotas.edit")]
     [HttpPost("monthly-hours")]
     public async Task<IActionResult> SetMonthlyHours([FromBody] SetMonthlyHoursRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("rotas.edit")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
         if (request.Month < 1 || request.Month > 12 || request.Year < 2000 || request.Year > 2100)
             return BadRequest(new { error = "Invalid year or month" });
 
-        var result = await _rotaService.SetMonthlyHoursAsync(request, userId.Value);
+        var result = await _rotaService.SetMonthlyHoursAsync(request, userId);
         return Ok(new MonthlyHoursResponse
         {
             Id = result.Id,
@@ -152,4 +123,18 @@ public class RotaController : ControllerBase
             ContractedHours = result.ContractedHours
         });
     }
+
+    // Map a Shift model to its API response
+    private static ShiftResponse ToShiftResponse(Models.Shift shift) => new()
+    {
+        Id = shift.Id,
+        EmployeeId = shift.EmployeeId,
+        Date = shift.Date,
+        ShiftTypeId = shift.ShiftTypeId,
+        ShiftTypeCode = shift.ShiftTypeCode,
+        Hours = shift.Hours ?? shift.DefaultHours,
+        IncludesSleep = shift.IncludesSleep,
+        DisplayColor = shift.DisplayColor,
+        Notes = shift.Notes
+    };
 }

@@ -1,4 +1,5 @@
 using EmployeeHub.Api.DTOs;
+using EmployeeHub.Api.Helpers;
 using EmployeeHub.Api.Models;
 using Npgsql;
 using NpgsqlTypes;
@@ -145,21 +146,23 @@ public class TrainingCourseService : ITrainingCourseService
 
     private static TrainingCourse ReadCourse(NpgsqlDataReader reader)
     {
+        var mandatoryForRolesOrd = reader.GetOrdinal("mandatory_for_roles");
+
         return new TrainingCourse
         {
-            Id = reader.GetGuid(0),
-            Name = reader.GetString(1),
-            Description = reader.IsDBNull(2) ? null : reader.GetString(2),
-            Category = reader.GetString(3),
-            ValidityMonths = reader.IsDBNull(4) ? null : reader.GetInt32(4),
-            ExpiryWarningDaysBefore = reader.GetInt32(5),
-            NotificationDaysBefore = reader.GetInt32(6),
-            ReminderFrequencyDays = reader.GetInt32(7),
-            NotifyEmployee = reader.GetBoolean(8),
-            NotifyAdmin = reader.GetBoolean(9),
-            MandatoryForRoles = reader.IsDBNull(10) ? null : reader.GetFieldValue<string[]>(10),
-            CreatedAt = reader.GetDateTime(11),
-            UpdatedAt = reader.GetDateTime(12)
+            Id = reader.GetGuid("id"),
+            Name = reader.GetString("name"),
+            Description = reader.GetStringOrNull("description"),
+            Category = reader.GetString("category"),
+            ValidityMonths = reader.GetInt32OrNull("validity_months"),
+            ExpiryWarningDaysBefore = reader.GetInt32("expiry_warning_days_before"),
+            NotificationDaysBefore = reader.GetInt32("notification_days_before"),
+            ReminderFrequencyDays = reader.GetInt32("reminder_frequency_days"),
+            NotifyEmployee = reader.GetBoolean("notify_employee"),
+            NotifyAdmin = reader.GetBoolean("notify_admin"),
+            MandatoryForRoles = reader.IsDBNull(mandatoryForRolesOrd) ? null : reader.GetFieldValue<string[]>(mandatoryForRolesOrd),
+            CreatedAt = reader.GetDateTime("created_at"),
+            UpdatedAt = reader.GetDateTime("updated_at")
         };
     }
 }

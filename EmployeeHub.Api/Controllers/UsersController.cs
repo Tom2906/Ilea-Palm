@@ -16,74 +16,63 @@ public class UsersController : ControllerBase
         _userService = userService;
     }
 
+    [RequirePermission("users.manage")]
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("users.manage")) return StatusCode(403);
 
         var users = await _userService.GetAllAsync();
         return Ok(users);
     }
 
+    [RequirePermission("users.manage")]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("users.manage")) return StatusCode(403);
 
         var user = await _userService.GetByIdAsync(id);
         if (user == null) return NotFound();
         return Ok(user);
     }
 
+    [RequirePermission("users.manage")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateUserRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("users.manage")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        try
-        {
-            var user = await _userService.CreateAsync(request, userId.Value);
-            return CreatedAtAction(nameof(GetById), new { id = user.Id }, user);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        var user = await _userService.CreateAsync(request, userId);
+        return CreatedAtAction(nameof(GetById), new { id = user.Id }, user);
     }
 
+    [RequirePermission("users.manage")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateUserRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("users.manage")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
         // Cannot change own role or deactivate self
-        if (id == userId.Value)
+        if (id == userId)
         {
             return BadRequest(new { error = "Cannot modify your own account" });
         }
 
-        var user = await _userService.UpdateAsync(id, request, userId.Value);
+        var user = await _userService.UpdateAsync(id, request, userId);
         if (user == null) return NotFound();
         return Ok(user);
     }
 
+    [RequirePermission("users.manage")]
     [HttpPost("{id:guid}/reset-password")]
     public async Task<IActionResult> ResetPassword(Guid id, [FromBody] ResetPasswordRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("users.manage")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var success = await _userService.ResetPasswordAsync(id, request, userId.Value);
-        if (!success) return NotFound();
+        var (success, error) = await _userService.ResetPasswordAsync(id, request, userId);
+        if (!success)
+            return string.IsNullOrEmpty(error) || error == "User not found"
+                ? NotFound()
+                : BadRequest(new { error });
         return Ok(new { message = "Password reset successfully" });
     }
 }

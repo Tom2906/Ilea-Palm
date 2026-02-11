@@ -16,10 +16,10 @@ public class EmployeeReferencesController : ControllerBase
         _refService = refService;
     }
 
+    [RequirePermission]
     [HttpGet]
     public async Task<IActionResult> GetByEmployee(Guid employeeId)
     {
-        if (User.GetUserId() == null) return Unauthorized();
         if (!User.HasPermission("employees.view") && User.GetEmployeeId() != employeeId)
             return StatusCode(403);
 
@@ -28,38 +28,35 @@ public class EmployeeReferencesController : ControllerBase
         return Ok(response);
     }
 
+    [RequirePermission("employees.edit")]
     [HttpPost]
     public async Task<IActionResult> Create(Guid employeeId, [FromBody] CreateEmployeeReferenceRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("employees.edit")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var reference = await _refService.CreateAsync(employeeId, request, userId.Value);
+        var reference = await _refService.CreateAsync(employeeId, request, userId);
         return CreatedAtAction(nameof(GetByEmployee), new { employeeId }, MapToResponse(reference));
     }
 
+    [RequirePermission("employees.edit")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid employeeId, Guid id, [FromBody] UpdateEmployeeReferenceRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("employees.edit")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var reference = await _refService.UpdateAsync(id, request, userId.Value);
+        var reference = await _refService.UpdateAsync(id, request, userId);
         if (reference == null) return NotFound();
 
         return Ok(MapToResponse(reference));
     }
 
+    [RequirePermission("employees.edit")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid employeeId, Guid id)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("employees.edit")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var success = await _refService.DeleteAsync(id, userId.Value);
+        var success = await _refService.DeleteAsync(id, userId);
         if (!success) return NotFound();
 
         return Ok(new { message = "Reference deleted" });

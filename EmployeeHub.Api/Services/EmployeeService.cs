@@ -1,4 +1,5 @@
 using EmployeeHub.Api.DTOs;
+using EmployeeHub.Api.Helpers;
 using EmployeeHub.Api.Models;
 using Npgsql;
 
@@ -145,27 +146,41 @@ public class EmployeeService : IEmployeeService
         return rows > 0;
     }
 
+    public async Task<List<string>> GetDistinctRolesAsync()
+    {
+        await using var conn = await _db.GetConnectionAsync();
+        await using var cmd = new NpgsqlCommand(
+            "SELECT DISTINCT role FROM employees WHERE active = true ORDER BY role", conn);
+
+        var roles = new List<string>();
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+            roles.Add(reader.GetString("role"));
+
+        return roles;
+    }
+
     private static Employee ReadEmployee(NpgsqlDataReader reader)
     {
         return new Employee
         {
-            Id = reader.GetGuid(0),
-            Email = reader.GetString(1),
-            FirstName = reader.GetString(2),
-            LastName = reader.GetString(3),
-            Department = reader.IsDBNull(4) ? null : reader.GetString(4),
-            Role = reader.GetString(5),
-            StartDate = DateOnly.FromDateTime(reader.GetDateTime(6)),
-            Active = reader.GetBoolean(7),
-            StatusId = reader.IsDBNull(8) ? null : reader.GetGuid(8),
-            StatusName = reader.IsDBNull(9) ? null : reader.GetString(9),
-            Notes = reader.IsDBNull(10) ? null : reader.GetString(10),
-            ReportsTo = reader.IsDBNull(11) ? null : reader.GetGuid(11),
-            SupervisorName = reader.IsDBNull(12) ? null : reader.GetString(12),
-            SupervisionFrequency = reader.GetInt32(13),
-            AppraisalFrequencyMonths = reader.GetInt32(14),
-            CreatedAt = reader.GetDateTime(15),
-            UpdatedAt = reader.GetDateTime(16)
+            Id = reader.GetGuid("id"),
+            Email = reader.GetString("email"),
+            FirstName = reader.GetString("first_name"),
+            LastName = reader.GetString("last_name"),
+            Department = reader.GetStringOrNull("department"),
+            Role = reader.GetString("role"),
+            StartDate = reader.GetDateOnly("start_date"),
+            Active = reader.GetBoolean("active"),
+            StatusId = reader.GetGuidOrNull("status_id"),
+            StatusName = reader.GetStringOrNull("status_name"),
+            Notes = reader.GetStringOrNull("notes"),
+            ReportsTo = reader.GetGuidOrNull("reports_to"),
+            SupervisorName = reader.GetStringOrNull("supervisor_name"),
+            SupervisionFrequency = reader.GetInt32("supervision_frequency"),
+            AppraisalFrequencyMonths = reader.GetInt32("appraisal_frequency_months"),
+            CreatedAt = reader.GetDateTime("created_at"),
+            UpdatedAt = reader.GetDateTime("updated_at")
         };
     }
 }

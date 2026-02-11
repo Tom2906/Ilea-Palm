@@ -180,13 +180,10 @@ public class DayInLifeController : ControllerBase
         }
     }
 
+    [RequirePermission("settings.manage")]
     [HttpPost("test")]
     public async Task<IActionResult> TestConnection()
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("settings.manage")) return StatusCode(403);
-
         var companySettings = await _settings.GetAsync();
 
         // Get provider configuration

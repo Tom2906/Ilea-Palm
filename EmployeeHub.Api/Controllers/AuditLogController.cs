@@ -16,12 +16,10 @@ public class AuditLogController : ControllerBase
         _db = db;
     }
 
+    [RequirePermission("audit_log.view")]
     [HttpGet]
     public async Task<IActionResult> GetLog([FromQuery] int limit = 100, [FromQuery] string? tableName = null)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("audit_log.view")) return StatusCode(403);
 
         await using var conn = await _db.GetConnectionAsync();
 

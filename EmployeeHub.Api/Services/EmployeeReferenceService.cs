@@ -1,4 +1,5 @@
 using EmployeeHub.Api.DTOs;
+using EmployeeHub.Api.Helpers;
 using EmployeeHub.Api.Models;
 using Npgsql;
 
@@ -152,20 +153,20 @@ public class EmployeeReferenceService : IEmployeeReferenceService
     {
         return new EmployeeReference
         {
-            Id = reader.GetGuid(0),
-            EmployeeId = reader.GetGuid(1),
-            ReferenceNumber = reader.GetInt32(2),
-            ContactName = reader.IsDBNull(3) ? null : reader.GetString(3),
-            ContactCompany = reader.IsDBNull(4) ? null : reader.GetString(4),
-            ContactEmail = reader.IsDBNull(5) ? null : reader.GetString(5),
-            ContactPhone = reader.IsDBNull(6) ? null : reader.GetString(6),
-            Received = reader.GetBoolean(7),
-            VerbalRef = reader.GetBoolean(8),
-            DateRequested = reader.IsDBNull(9) ? null : DateOnly.FromDateTime(reader.GetDateTime(9)),
-            DateReceived = reader.IsDBNull(10) ? null : DateOnly.FromDateTime(reader.GetDateTime(10)),
-            Notes = reader.IsDBNull(11) ? null : reader.GetString(11),
-            CreatedAt = reader.GetDateTime(12),
-            UpdatedAt = reader.GetDateTime(13)
+            Id = reader.GetGuid("id"),
+            EmployeeId = reader.GetGuid("employee_id"),
+            ReferenceNumber = reader.GetInt32("reference_number"),
+            ContactName = reader.GetStringOrNull("contact_name"),
+            ContactCompany = reader.GetStringOrNull("contact_company"),
+            ContactEmail = reader.GetStringOrNull("contact_email"),
+            ContactPhone = reader.GetStringOrNull("contact_phone"),
+            Received = reader.GetBoolean("received"),
+            VerbalRef = reader.GetBoolean("verbal_ref"),
+            DateRequested = reader.GetDateOnlyOrNull("date_requested"),
+            DateReceived = reader.GetDateOnlyOrNull("date_received"),
+            Notes = reader.GetStringOrNull("notes"),
+            CreatedAt = reader.GetDateTime("created_at"),
+            UpdatedAt = reader.GetDateTime("updated_at")
         };
     }
 }

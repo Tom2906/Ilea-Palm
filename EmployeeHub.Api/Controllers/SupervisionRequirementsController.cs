@@ -16,43 +16,35 @@ public class SupervisionRequirementsController : ControllerBase
         _service = service;
     }
 
+    [RequirePermission("supervisions.view")]
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("supervisions.view")) return StatusCode(403);
-
         var requirements = await _service.GetAllAsync();
         return Ok(requirements);
     }
 
+    [RequirePermission("supervisions.view")]
     [HttpGet("employee/{employeeId:guid}")]
     public async Task<IActionResult> GetByEmployee(Guid employeeId)
     {
-        if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("supervisions.view")) return StatusCode(403);
-
         var requirements = await _service.GetByEmployeeAsync(employeeId);
         return Ok(requirements);
     }
 
+    [RequirePermission("supervisions.view")]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("supervisions.view")) return StatusCode(403);
-
         var requirement = await _service.GetByIdAsync(id);
         if (requirement == null) return NotFound();
         return Ok(requirement);
     }
 
+    [RequirePermission("supervisions.view")]
     [HttpGet("employee/{employeeId:guid}/month/{month}")]
     public async Task<IActionResult> GetRequirementForMonth(Guid employeeId, string month)
     {
-        if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("supervisions.view")) return StatusCode(403);
-
         // month format: "YYYY-MM"
         if (!DateOnly.TryParse(month + "-01", out var date))
             return BadRequest("Invalid month format. Use YYYY-MM");
@@ -61,32 +53,29 @@ public class SupervisionRequirementsController : ControllerBase
         return Ok(requirement);
     }
 
+    [RequirePermission("supervisions.edit")]
     [HttpPost]
     public async Task<IActionResult> Create(CreateSupervisionRequirementRequest request)
     {
-        if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("supervisions.edit")) return StatusCode(403);
 
         var requirement = await _service.CreateAsync(request);
         return CreatedAtAction(nameof(GetById), new { id = requirement.Id }, requirement);
     }
 
+    [RequirePermission("supervisions.edit")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, UpdateSupervisionRequirementRequest request)
     {
-        if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("supervisions.edit")) return StatusCode(403);
 
         var requirement = await _service.UpdateAsync(id, request);
         if (requirement == null) return NotFound();
         return Ok(requirement);
     }
 
+    [RequirePermission("supervisions.delete")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("supervisions.delete")) return StatusCode(403);
 
         var deleted = await _service.DeleteAsync(id);
         if (!deleted) return NotFound();

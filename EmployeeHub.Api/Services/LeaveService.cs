@@ -1,10 +1,14 @@
 using EmployeeHub.Api.DTOs;
+using EmployeeHub.Api.Helpers;
 using Npgsql;
 
 namespace EmployeeHub.Api.Services;
 
 public class LeaveService : ILeaveService
 {
+    // UK statutory minimum (28 days including bank holidays) — used when no entitlement record exists
+    private const decimal DefaultAnnualEntitlement = 28;
+
     private readonly IDbService _db;
     private readonly IAuditService _audit;
 
@@ -76,8 +80,10 @@ public class LeaveService : ILeaveService
 
     public async Task<LeaveRequestResponse> CreateRequestAsync(CreateLeaveRequestRequest request, Guid userId)
     {
-        var startDate = DateOnly.Parse(request.StartDate);
-        var endDate = DateOnly.Parse(request.EndDate);
+        if (!DateOnly.TryParse(request.StartDate, out var startDate))
+            throw new ArgumentException("Invalid start date format");
+        if (!DateOnly.TryParse(request.EndDate, out var endDate))
+            throw new ArgumentException("Invalid end date format");
 
         if (endDate < startDate)
             throw new ArgumentException("End date must be on or after start date");
@@ -152,7 +158,7 @@ public class LeaveService : ILeaveService
         await using var conn = await _db.GetConnectionAsync();
 
         // Get entitlement
-        decimal totalEntitlement = 28; // default
+        decimal totalEntitlement = DefaultAnnualEntitlement;
         decimal carriedOver = 0;
 
         await using (var entCmd = new NpgsqlCommand(
@@ -163,8 +169,8 @@ public class LeaveService : ILeaveService
             await using var reader = await entCmd.ExecuteReaderAsync();
             if (await reader.ReadAsync())
             {
-                totalEntitlement = reader.GetDecimal(0);
-                carriedOver = reader.GetDecimal(1);
+                totalEntitlement = reader.GetDecimal("total_days");
+                carriedOver = reader.GetDecimal("carried_over");
             }
         }
 
@@ -268,18 +274,18 @@ public class LeaveService : ILeaveService
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var totalDays = reader.GetDecimal(4);
-            var carriedOver = reader.GetDecimal(5);
-            var approvedDays = reader.GetDecimal(7);
+            var totalDays = reader.GetDecimal("total_days");
+            var carriedOver = reader.GetDecimal("carried_over");
+            var approvedDays = reader.GetDecimal("approved_days");
             results.Add(new LeaveEntitlementResponse
             {
-                Id = reader.GetGuid(0),
-                EmployeeId = reader.GetGuid(1),
-                EmployeeName = reader.GetString(2),
-                Year = reader.GetInt32(3),
+                Id = reader.GetGuid("id"),
+                EmployeeId = reader.GetGuid("employee_id"),
+                EmployeeName = reader.GetString("employee_name"),
+                Year = reader.GetInt32("year"),
                 TotalDays = totalDays,
                 CarriedOver = carriedOver,
-                Notes = reader.IsDBNull(6) ? null : reader.GetString(6),
+                Notes = reader.GetStringOrNull("notes"),
                 ApprovedDays = approvedDays,
                 RemainingDays = totalDays + carriedOver - approvedDays
             });
@@ -307,9 +313,9 @@ public class LeaveService : ILeaveService
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var empId = reader.GetGuid(0);
-            var start = DateOnly.FromDateTime(reader.GetDateTime(1));
-            var end = DateOnly.FromDateTime(reader.GetDateTime(2));
+            var empId = reader.GetGuid("employee_id");
+            var start = reader.GetDateOnly("start_date");
+            var end = reader.GetDateOnly("end_date");
 
             // Clamp to month boundaries
             if (start < monthStart) start = monthStart;
@@ -331,20 +337,20 @@ public class LeaveService : ILeaveService
     {
         return new LeaveRequestResponse
         {
-            Id = reader.GetGuid(0),
-            EmployeeId = reader.GetGuid(1),
-            EmployeeName = reader.GetString(2),
-            StartDate = DateOnly.FromDateTime(reader.GetDateTime(3)).ToString("yyyy-MM-dd"),
-            EndDate = DateOnly.FromDateTime(reader.GetDateTime(4)).ToString("yyyy-MM-dd"),
-            TotalDays = reader.GetDecimal(5),
-            Status = reader.GetString(6),
-            RequestedBy = reader.GetGuid(7),
-            RequestedByName = reader.GetString(8),
-            ApprovedBy = reader.IsDBNull(9) ? null : reader.GetGuid(9),
-            ApprovedByName = reader.IsDBNull(10) ? null : reader.GetString(10),
-            ApprovedAt = reader.IsDBNull(11) ? null : reader.GetDateTime(11).ToString("o"),
-            Notes = reader.IsDBNull(12) ? null : reader.GetString(12),
-            CreatedAt = reader.GetDateTime(13).ToString("o")
+            Id = reader.GetGuid("id"),
+            EmployeeId = reader.GetGuid("employee_id"),
+            EmployeeName = reader.GetString("employee_name"),
+            StartDate = reader.GetDateOnly("start_date").ToString("yyyy-MM-dd"),
+            EndDate = reader.GetDateOnly("end_date").ToString("yyyy-MM-dd"),
+            TotalDays = reader.GetDecimal("total_days"),
+            Status = reader.GetString("status"),
+            RequestedBy = reader.GetGuid("requested_by"),
+            RequestedByName = reader.GetString("requested_by_name"),
+            ApprovedBy = reader.GetGuidOrNull("approved_by"),
+            ApprovedByName = reader.GetStringOrNull("approved_by_name"),
+            ApprovedAt = reader.GetDateTimeOrNull("approved_at")?.ToString("o"),
+            Notes = reader.GetStringOrNull("notes"),
+            CreatedAt = reader.GetDateTime("created_at").ToString("o")
         };
     }
 }

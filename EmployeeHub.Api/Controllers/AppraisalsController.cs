@@ -18,37 +18,34 @@ public class AppraisalsController : ControllerBase
         _settingsService = settingsService;
     }
 
+    [RequirePermission("appraisals.view")]
     [HttpGet("matrix")]
     public async Task<IActionResult> GetMatrix()
     {
-        if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("appraisals.view")) return StatusCode(403);
 
         var settings = await _settingsService.GetAsync();
         var rows = await _appraisalService.GetMatrixAsync(settings.AppraisalReviewsBack, settings.AppraisalReviewsForward);
         return Ok(new { reviewsBack = settings.AppraisalReviewsBack, rows });
     }
 
+    [RequirePermission("appraisals.view")]
     [HttpGet("employee/{employeeId:guid}")]
     public async Task<IActionResult> GetByEmployee(Guid employeeId)
     {
-        if (User.GetUserId() == null) return Unauthorized();
-        if (!User.HasPermission("appraisals.view")) return StatusCode(403);
 
         var appraisals = await _appraisalService.GetByEmployeeAsync(employeeId);
         return Ok(appraisals);
     }
 
+    [RequirePermission("appraisals.add")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateAppraisalRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("appraisals.add")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
         try
         {
-            var appraisal = await _appraisalService.CreateAsync(request, userId.Value);
+            var appraisal = await _appraisalService.CreateAsync(request, userId);
             return CreatedAtAction(nameof(GetByEmployee), new { employeeId = appraisal.EmployeeId }, appraisal);
         }
         catch (Npgsql.PostgresException ex) when (ex.SqlState == "23505")
@@ -57,45 +54,35 @@ public class AppraisalsController : ControllerBase
         }
     }
 
+    [RequirePermission("appraisals.add")]
     [HttpPost("generate/{employeeId:guid}")]
     public async Task<IActionResult> GenerateMilestones(Guid employeeId)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("appraisals.add")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        try
-        {
-            var created = await _appraisalService.GenerateMilestonesForEmployeeAsync(employeeId, userId.Value);
-            return Ok(new { message = $"Generated {created.Count} new reviews", milestones = created });
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
+        var created = await _appraisalService.GenerateMilestonesForEmployeeAsync(employeeId, userId);
+        return Ok(new { message = $"Generated {created.Count} new reviews", milestones = created });
     }
 
+    [RequirePermission("appraisals.edit")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateAppraisalRequest request)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("appraisals.edit")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var appraisal = await _appraisalService.UpdateAsync(id, request, userId.Value);
+        var appraisal = await _appraisalService.UpdateAsync(id, request, userId);
         if (appraisal == null) return NotFound();
 
         return Ok(appraisal);
     }
 
+    [RequirePermission("appraisals.delete")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var userId = User.GetUserId();
-        if (userId == null) return Unauthorized();
-        if (!User.HasPermission("appraisals.delete")) return StatusCode(403);
+        var userId = User.GetUserId()!.Value;
 
-        var success = await _appraisalService.DeleteAsync(id, userId.Value);
+        var success = await _appraisalService.DeleteAsync(id, userId);
         if (!success) return NotFound();
 
         return Ok(new { message = "Appraisal review deleted" });

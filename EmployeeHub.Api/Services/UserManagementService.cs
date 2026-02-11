@@ -1,4 +1,5 @@
 using EmployeeHub.Api.DTOs;
+using EmployeeHub.Api.Helpers;
 using Npgsql;
 
 namespace EmployeeHub.Api.Services;
@@ -49,6 +50,14 @@ public class UserManagementService : IUserManagementService
         // Validate: password required for password/both auth methods
         if (authMethod is "password" or "both" && string.IsNullOrEmpty(request.Password))
             throw new InvalidOperationException("Password is required for this authentication method");
+
+        // Validate password complexity
+        if (authMethod is "password" or "both")
+        {
+            var (isValid, validationError) = Helpers.PasswordValidator.Validate(request.Password!);
+            if (!isValid)
+                throw new ArgumentException(validationError);
+        }
 
         // Check email uniqueness
         await using var checkCmd = new NpgsqlCommand(
@@ -109,8 +118,12 @@ public class UserManagementService : IUserManagementService
         return await GetByIdAsync(id);
     }
 
-    public async Task<bool> ResetPasswordAsync(Guid id, ResetPasswordRequest request, Guid resetBy)
+    public async Task<(bool Success, string? Error)> ResetPasswordAsync(Guid id, ResetPasswordRequest request, Guid resetBy)
     {
+        var (isValid, validationError) = Helpers.PasswordValidator.Validate(request.NewPassword);
+        if (!isValid)
+            return (false, validationError);
+
         await using var conn = await _db.GetConnectionAsync();
 
         var hash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
@@ -124,7 +137,7 @@ public class UserManagementService : IUserManagementService
         if (rows > 0)
             await _audit.LogAsync("users", id, "reset_password", resetBy);
 
-        return rows > 0;
+        return (rows > 0, rows > 0 ? null : "User not found");
     }
 
     private static async Task<List<UserListResponse>> ReadUsersAsync(NpgsqlCommand cmd)
@@ -135,17 +148,17 @@ public class UserManagementService : IUserManagementService
         {
             users.Add(new UserListResponse
             {
-                Id = reader.GetGuid(0),
-                Email = reader.GetString(1),
-                DisplayName = reader.GetString(2),
-                RoleId = reader.GetGuid(3),
-                RoleName = reader.GetString(4),
-                EmployeeId = reader.IsDBNull(5) ? null : reader.GetGuid(5),
-                EmployeeName = reader.IsDBNull(6) ? null : reader.GetString(6),
-                Active = reader.GetBoolean(7),
-                LastLogin = reader.IsDBNull(8) ? null : reader.GetDateTime(8),
-                CreatedAt = reader.GetDateTime(9),
-                AuthMethod = reader.GetString(10)
+                Id = reader.GetGuid("id"),
+                Email = reader.GetString("email"),
+                DisplayName = reader.GetString("display_name"),
+                RoleId = reader.GetGuid("role_id"),
+                RoleName = reader.GetString("role_name"),
+                EmployeeId = reader.GetGuidOrNull("employee_id"),
+                EmployeeName = reader.GetStringOrNull("employee_name"),
+                Active = reader.GetBoolean("active"),
+                LastLogin = reader.GetDateTimeOrNull("last_login"),
+                CreatedAt = reader.GetDateTime("created_at"),
+                AuthMethod = reader.GetString("auth_method")
             });
         }
         return users;
