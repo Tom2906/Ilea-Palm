@@ -27,6 +27,7 @@ import MyTrainingPage from "@/pages/my-training"
 import MyRotaPage from "@/pages/my-rota"
 import MyLeavePage from "@/pages/my-leave"
 import DayInLifePage from "@/pages/day-in-life"
+import ReportIssuePage from "@/pages/report-issue"
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -65,6 +66,7 @@ export default function App() {
               <Route path="/leave" element={<LeavePage />} />
               {/* Tools */}
               <Route path="/day-in-life" element={<DayInLifePage />} />
+              <Route path="/report-issue" element={<ReportIssuePage />} />
               {/* Administration pages */}
               <Route path="/onboarding-items" element={<OnboardingItemsPage />} />
               <Route path="/employee-statuses" element={<EmployeeStatusesPage />} />

@@ -1,10 +1,11 @@
-import { useState, useMemo, useCallback, useEffect } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
 import { api } from "@/lib/api"
 import { formatDate } from "@/lib/format"
 import type { Employee } from "@/lib/types"
 import { useAuth } from "@/contexts/auth-context"
+import { useFilterToggle } from "@/hooks/use-filter-toggle"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { FilterBar } from "@/components/filter-bar"
@@ -16,7 +17,7 @@ export default function EmployeesPage() {
   const navigate = useNavigate()
   const { hasPermission } = useAuth()
   const [search, setSearch] = useState("")
-  const [hidden, setHidden] = useState<Set<string>>(new Set())
+  const { hidden, setHidden, toggle, toggleAll, clear } = useFilterToggle()
   const [defaultsApplied, setDefaultsApplied] = useState(false)
 
   const { data: employees, isLoading } = useQuery({
@@ -40,22 +41,6 @@ export default function EmployeesPage() {
       setDefaultsApplied(true)
     }
   }, [statuses, defaultsApplied])
-
-  const toggle = useCallback((id: string) => {
-    setHidden((prev) => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }, [])
-
-  const toggleAll = useCallback((ids: string[], hide: boolean) => {
-    setHidden((prev) => {
-      const next = new Set(prev)
-      ids.forEach((id) => (hide ? next.add(id) : next.delete(id)))
-      return next
-    })
-  }, [])
 
   const filterGroups = useMemo(() => [
     { label: "Status", items: statuses.map((s) => ({ id: `status:${s}`, label: s })) },
@@ -91,7 +76,7 @@ export default function EmployeesPage() {
             hidden={hidden}
             onToggle={toggle}
             onToggleAll={toggleAll}
-            onClear={() => setHidden(new Set())}
+            onClear={clear}
           />
           {hasPermission("employees.add") && (
             <Button size="sm" onClick={() => navigate("/employees/new")}>

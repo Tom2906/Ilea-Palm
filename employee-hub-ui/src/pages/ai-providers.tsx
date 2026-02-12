@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Pencil, Trash2 } from "lucide-react"
+import { getProviderLabel } from "@/lib/constants"
 
 interface ProviderFormData {
   provider: string
@@ -82,18 +83,6 @@ export default function AIProvidersPage() {
     })
   }
 
-  const getProviderLabel = (provider: string) => {
-    switch (provider) {
-      case "anthropic":
-        return "Anthropic (Claude)"
-      case "openai":
-        return "OpenAI (GPT)"
-      case "gemini":
-        return "Google (Gemini)"
-      default:
-        return provider
-    }
-  }
 
   if (isLoading) {
     return <div>Loading...</div>

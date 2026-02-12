@@ -17,19 +17,9 @@ import { StatCard } from "@/components/stat-card"
 import { ListPanel } from "@/components/list-panel"
 import { StatusDot } from "@/components/status-dot"
 import { ActivityFeed } from "@/components/activity-feed"
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart"
-import {
-  chartGradientDefs,
-  pieStyles,
-  barStyles,
-  complianceChartConfig,
-  buildPieConfig,
-} from "@/lib/chart-styles"
-import { Label, Pie, PieChart, Bar, BarChart, XAxis, YAxis } from "recharts"
+import { pieStyles, complianceChartConfig } from "@/lib/chart-styles"
+import { DonutChart } from "@/components/charts/donut-chart"
+import { ComparisonBarChart } from "@/components/charts/comparison-bar-chart"
 import {
   Users,
   BookOpen,
@@ -114,8 +104,6 @@ export function DashboardOverview({
       legendColor: pieStyles.completed.legend,
     },
   ].filter((d) => d.count > 0)
-
-  const trainingPieConfig = buildPieConfig(trainingPieData)
 
   const categories = [
     "Online Mandatory",
@@ -351,87 +339,13 @@ export function DashboardOverview({
               Company-wide compliance overview
             </p>
           </div>
-          <div className="px-5 pb-5">
-            {statuses.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">
-                No training data
-              </p>
-            ) : (
-              <ChartContainer
-                config={trainingPieConfig}
-                className="mx-auto aspect-square max-h-[220px]"
-              >
-                <PieChart key={statuses.length}>
-                  {chartGradientDefs()}
-                  <ChartTooltip
-                    content={<ChartTooltipContent hideLabel />}
-                  />
-                  <Pie
-                    data={trainingPieData}
-                    dataKey="count"
-                    nameKey="status"
-                    innerRadius={60}
-                    outerRadius={90}
-                    strokeWidth={3}
-                    stroke="hsl(var(--background))"
-                    style={{ filter: "url(#pieShadow)" }}
-                  >
-                    <Label
-                      content={({ viewBox }) => {
-                        if (
-                          viewBox &&
-                          "cx" in viewBox &&
-                          "cy" in viewBox
-                        ) {
-                          return (
-                            <text
-                              x={viewBox.cx}
-                              y={viewBox.cy}
-                              textAnchor="middle"
-                              dominantBaseline="middle"
-                            >
-                              <tspan
-                                x={viewBox.cx}
-                                y={(viewBox.cy || 0) - 6}
-                                className="fill-foreground text-3xl font-bold"
-                              >
-                                {compliancePct}%
-                              </tspan>
-                              <tspan
-                                x={viewBox.cx}
-                                y={(viewBox.cy || 0) + 16}
-                                className="fill-muted-foreground text-[11px] font-medium"
-                              >
-                                compliant
-                              </tspan>
-                            </text>
-                          )
-                        }
-                      }}
-                    />
-                  </Pie>
-                </PieChart>
-              </ChartContainer>
-            )}
-            {statuses.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-3 mt-2">
-                {trainingPieData.map((d) => (
-                  <div
-                    key={d.status}
-                    className="flex items-center gap-1.5"
-                  >
-                    <div
-                      className="h-2.5 w-2.5 rounded-full shadow-sm"
-                      style={{ backgroundColor: d.legendColor }}
-                    />
-                    <span className="text-xs text-muted-foreground">
-                      {d.status} ({d.count})
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <DonutChart
+            data={trainingPieData}
+            centerValue={`${compliancePct}%`}
+            centerLabel="compliant"
+            chartKey={statuses.length}
+            emptyMessage="No training data"
+          />
         </div>
 
         {/* Compliance by Category Bar */}
@@ -444,48 +358,15 @@ export function DashboardOverview({
               Compliant vs total assignments per category
             </p>
           </div>
-          <div className="px-5 pb-5">
-            {statuses.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">
-                No training data
-              </p>
-            ) : (
-              <ChartContainer
-                config={complianceChartConfig}
-                className="h-[220px] w-full"
-              >
-                <BarChart
-                  key={statuses.length}
-                  data={complianceBarData}
-                  margin={{ top: 8, right: 0, left: -20, bottom: 0 }}
-                >
-                  {chartGradientDefs()}
-                  <XAxis
-                    dataKey="category"
-                    tickLine={false}
-                    axisLine={false}
-                    fontSize={12}
-                  />
-                  <YAxis
-                    tickLine={false}
-                    axisLine={false}
-                    fontSize={12}
-                  />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar
-                    dataKey="compliant"
-                    fill={barStyles.primary}
-                    radius={[6, 6, 0, 0]}
-                  />
-                  <Bar
-                    dataKey="total"
-                    fill={barStyles.secondary}
-                    radius={[6, 6, 0, 0]}
-                  />
-                </BarChart>
-              </ChartContainer>
-            )}
-          </div>
+          <ComparisonBarChart
+            data={complianceBarData}
+            config={complianceChartConfig}
+            categoryKey="category"
+            primaryKey="compliant"
+            secondaryKey="total"
+            chartKey={statuses.length}
+            emptyMessage="No training data"
+          />
         </div>
       </div>
 

@@ -10,22 +10,13 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { StatCard } from "@/components/stat-card"
 import { ListPanel } from "@/components/list-panel"
 import { StatusDot } from "@/components/status-dot"
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart"
-import {
-  chartGradientDefs,
-  pieStyles,
-  barStyles,
-  hoursChartConfig,
-  buildPieConfig,
-} from "@/lib/chart-styles"
-import { Label, Pie, PieChart, Bar, BarChart, XAxis, YAxis } from "recharts"
+import { pieStyles } from "@/lib/chart-styles"
+import { hoursChartConfig } from "@/lib/chart-styles"
+import { DonutChart } from "@/components/charts/donut-chart"
+import { ComparisonBarChart } from "@/components/charts/comparison-bar-chart"
 import { BookOpen, Users, ClipboardCheck, Timer } from "lucide-react"
 
-// Mock hours data — will be replaced when rota backend exists
+// TODO: Replace with real rota data — the rota backend already exists
 const mockWeeklyHours = [
   { day: "Mon", hours: 8, target: 7.5 },
   { day: "Tue", hours: 7.5, target: 7.5 },
@@ -82,8 +73,6 @@ export function EmployeeOverview({
     { status: "Completed", count: statusCounts.Completed, fill: pieStyles.completed.fill, legendColor: pieStyles.completed.legend },
   ].filter((d) => d.count > 0)
 
-  const trainingPieConfig = buildPieConfig(trainingPieData)
-
   return (
     <div className="flex flex-col gap-4 flex-1 min-h-0">
       {/* Stat Cards */}
@@ -102,57 +91,19 @@ export function EmployeeOverview({
             <h3 className="text-sm font-semibold">Training Breakdown</h3>
             <p className="text-xs text-muted-foreground">Compliance overview</p>
           </div>
-          <div className="px-5 pb-5">
-            {loadingTraining ? (
+          {loadingTraining ? (
+            <div className="px-5 pb-5">
               <Skeleton className="h-[200px] w-full" />
-            ) : training.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">No training data</p>
-            ) : (
-              <ChartContainer config={trainingPieConfig} className="mx-auto aspect-square max-h-[220px]">
-                <PieChart key={employee.id}>
-                  {chartGradientDefs()}
-                  <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                  <Pie
-                    data={trainingPieData}
-                    dataKey="count"
-                    nameKey="status"
-                    innerRadius={60}
-                    outerRadius={90}
-                    strokeWidth={3}
-                    stroke="hsl(var(--background))"
-                    style={{ filter: "url(#pieShadow)" }}
-                  >
-                    <Label
-                      content={({ viewBox }) => {
-                        if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                          return (
-                            <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
-                              <tspan x={viewBox.cx} y={(viewBox.cy || 0) - 6} className="fill-foreground text-3xl font-bold">
-                                {trainingPct}%
-                              </tspan>
-                              <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 16} className="fill-muted-foreground text-[11px] font-medium">
-                                compliant
-                              </tspan>
-                            </text>
-                          )
-                        }
-                      }}
-                    />
-                  </Pie>
-                </PieChart>
-              </ChartContainer>
-            )}
-            {training.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-3 mt-2">
-                {trainingPieData.map((d) => (
-                  <div key={d.status} className="flex items-center gap-1.5">
-                    <div className="h-2.5 w-2.5 rounded-full shadow-sm" style={{ backgroundColor: d.legendColor }} />
-                    <span className="text-xs text-muted-foreground">{d.status} ({d.count})</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <DonutChart
+              data={trainingPieData}
+              centerValue={`${trainingPct}%`}
+              centerLabel="compliant"
+              chartKey={employee.id}
+              emptyMessage="No training data"
+            />
+          )}
         </div>
 
         {/* Weekly Hours Bar */}
@@ -161,18 +112,14 @@ export function EmployeeOverview({
             <h3 className="text-sm font-semibold">Weekly Hours</h3>
             <p className="text-xs text-muted-foreground">{mockTotalHours}h worked of {mockTargetHours}h target</p>
           </div>
-          <div className="px-5 pb-5">
-            <ChartContainer config={hoursChartConfig} className="h-[220px] w-full">
-              <BarChart key={employee.id} data={mockWeeklyHours} margin={{ top: 8, right: 0, left: -20, bottom: 0 }}>
-                {chartGradientDefs()}
-                <XAxis dataKey="day" tickLine={false} axisLine={false} fontSize={12} />
-                <YAxis tickLine={false} axisLine={false} fontSize={12} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="hours" fill={barStyles.primary} radius={[6, 6, 0, 0]} />
-                <Bar dataKey="target" fill={barStyles.secondary} radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ChartContainer>
-          </div>
+          <ComparisonBarChart
+            data={mockWeeklyHours}
+            config={hoursChartConfig}
+            categoryKey="day"
+            primaryKey="hours"
+            secondaryKey="target"
+            chartKey={employee.id}
+          />
         </div>
       </div>
 

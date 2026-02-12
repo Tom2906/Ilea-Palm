@@ -17,15 +17,6 @@ import {
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { ArrowLeft } from "lucide-react"
 
-const roles = [
-  "Director",
-  "Responsible Individual",
-  "Registered Manager",
-  "Senior Residential Support Worker",
-  "Residential Support Worker",
-  "Bank",
-]
-
 export default function EmployeeFormPage() {
   const { id } = useParams<{ id: string }>()
   const isEdit = !!id
@@ -37,7 +28,7 @@ export default function EmployeeFormPage() {
     firstName: "",
     lastName: "",
     department: "",
-    role: "Residential Support Worker",
+    role: "",
     startDate: "",
     statusId: "",
     notes: "",
@@ -53,6 +44,11 @@ export default function EmployeeFormPage() {
   const { data: statuses } = useQuery({
     queryKey: ["employee-statuses"],
     queryFn: () => api.get<EmployeeStatus[]>("/employee-statuses"),
+  })
+
+  const { data: roles = [] } = useQuery({
+    queryKey: ["employee-roles"],
+    queryFn: () => api.get<string[]>("/employees/roles"),
   })
 
   useEffect(() => {
@@ -179,22 +175,22 @@ export default function EmployeeFormPage() {
               <div className="grid grid-cols-2 gap-4">
                 <Field>
                   <FieldLabel htmlFor="role">Role</FieldLabel>
-                  <Select
+                  <Input
+                    id="role"
+                    list="role-options"
+                    required
                     value={form.role}
-                    onValueChange={(v) => setForm({ ...form, role: v })}
+                    onChange={(e) =>
+                      setForm({ ...form, role: e.target.value })
+                    }
                     disabled={isPending}
-                  >
-                    <SelectTrigger id="role">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roles.map((r) => (
-                        <SelectItem key={r} value={r}>
-                          {r}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Select or type a role"
+                  />
+                  <datalist id="role-options">
+                    {roles.map((r) => (
+                      <option key={r} value={r} />
+                    ))}
+                  </datalist>
                 </Field>
                 <Field>
                   <FieldLabel htmlFor="department">Department</FieldLabel>

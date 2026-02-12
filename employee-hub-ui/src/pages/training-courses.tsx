@@ -1,8 +1,9 @@
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import type { TrainingCourse } from "@/lib/types"
 import { useAuth } from "@/contexts/auth-context"
+import { useFilterToggle } from "@/hooks/use-filter-toggle"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -44,7 +45,7 @@ export default function TrainingCoursesPage() {
   const { hasPermission } = useAuth()
   const queryClient = useQueryClient()
   const [search, setSearch] = useState("")
-  const [hidden, setHidden] = useState<Set<string>>(new Set())
+  const { hidden, toggle, toggleAll, clear } = useFilterToggle()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState(defaultForm)
@@ -54,22 +55,6 @@ export default function TrainingCoursesPage() {
     queryKey: ["training-courses"],
     queryFn: () => api.get<TrainingCourse[]>("/training-courses"),
   })
-
-  const toggle = useCallback((id: string) => {
-    setHidden((prev) => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }, [])
-
-  const toggleAll = useCallback((ids: string[], hide: boolean) => {
-    setHidden((prev) => {
-      const next = new Set(prev)
-      ids.forEach((id) => (hide ? next.add(id) : next.delete(id)))
-      return next
-    })
-  }, [])
 
   const filterGroups = useMemo(() => [
     { label: "Category", items: categories.map((c) => ({ id: `cat:${c}`, label: c })) },
@@ -176,7 +161,7 @@ export default function TrainingCoursesPage() {
             hidden={hidden}
             onToggle={toggle}
             onToggleAll={toggleAll}
-            onClear={() => setHidden(new Set())}
+            onClear={clear}
           />
           {hasPermission("training_courses.edit") && (
             <Button size="sm" onClick={openCreate}>

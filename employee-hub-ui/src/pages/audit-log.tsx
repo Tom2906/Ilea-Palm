@@ -1,8 +1,9 @@
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { formatDateTime } from "@/lib/format"
 import type { AuditLogEntry, NotificationLogEntry } from "@/lib/types"
+import { useFilterToggle } from "@/hooks/use-filter-toggle"
 import { Badge } from "@/components/ui/badge"
 import { FilterBar } from "@/components/filter-bar"
 import { DataTable } from "@/components/data-table"
@@ -157,28 +158,12 @@ const notificationColumns: DataTableColumn<NotificationLogEntry>[] = [
 
 function AuditLogTab() {
   const [search, setSearch] = useState("")
-  const [hidden, setHidden] = useState<Set<string>>(new Set())
+  const { hidden, toggle, toggleAll, clear } = useFilterToggle()
 
   const { data: entries, isLoading } = useQuery({
     queryKey: ["audit-log"],
     queryFn: () => api.get<AuditLogEntry[]>("/audit-log?limit=200"),
   })
-
-  const toggle = useCallback((id: string) => {
-    setHidden((prev) => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }, [])
-
-  const toggleAll = useCallback((ids: string[], hide: boolean) => {
-    setHidden((prev) => {
-      const next = new Set(prev)
-      ids.forEach((id) => (hide ? next.add(id) : next.delete(id)))
-      return next
-    })
-  }, [])
 
   const filterGroups = useMemo(() => [
     { label: "Table", items: tableNames.map((t) => ({ id: `table:${t}`, label: formatTableName(t) })) },
@@ -233,7 +218,7 @@ function AuditLogTab() {
           hidden={hidden}
           onToggle={toggle}
           onToggleAll={toggleAll}
-          onClear={() => setHidden(new Set())}
+          onClear={clear}
         />
       }
       loading={isLoading}
@@ -244,28 +229,12 @@ function AuditLogTab() {
 
 function NotificationLogTab() {
   const [search, setSearch] = useState("")
-  const [hidden, setHidden] = useState<Set<string>>(new Set())
+  const { hidden, toggle, toggleAll, clear } = useFilterToggle()
 
   const { data: log, isLoading } = useQuery({
     queryKey: ["notifications-log"],
     queryFn: () => api.get<NotificationLogEntry[]>("/notifications/log?limit=100"),
   })
-
-  const toggle = useCallback((id: string) => {
-    setHidden((prev) => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }, [])
-
-  const toggleAll = useCallback((ids: string[], hide: boolean) => {
-    setHidden((prev) => {
-      const next = new Set(prev)
-      ids.forEach((id) => (hide ? next.add(id) : next.delete(id)))
-      return next
-    })
-  }, [])
 
   const filterGroups = useMemo(() => [
     { label: "Type", items: [
@@ -306,7 +275,7 @@ function NotificationLogTab() {
           hidden={hidden}
           onToggle={toggle}
           onToggleAll={toggleAll}
-          onClear={() => setHidden(new Set())}
+          onClear={clear}
         />
       }
       loading={isLoading}

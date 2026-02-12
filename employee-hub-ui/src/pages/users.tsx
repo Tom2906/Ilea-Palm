@@ -1,8 +1,9 @@
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import type { UserListResponse, RoleResponse, Employee } from "@/lib/types"
 import { useAuth } from "@/contexts/auth-context"
+import { useFilterToggle } from "@/hooks/use-filter-toggle"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -50,7 +51,7 @@ export default function UsersPage() {
   const queryClient = useQueryClient()
   const { user: currentUser } = useAuth()
   const [search, setSearch] = useState("")
-  const [hidden, setHidden] = useState<Set<string>>(new Set())
+  const { hidden, toggle, toggleAll, clear } = useFilterToggle()
   const [createOpen, setCreateOpen] = useState(false)
   const [editUser, setEditUser] = useState<UserListResponse | null>(null)
   const [resetUser, setResetUser] = useState<UserListResponse | null>(null)
@@ -77,22 +78,6 @@ export default function UsersPage() {
     queryKey: ["employees"],
     queryFn: () => api.get<Employee[]>("/employees"),
   })
-
-  const toggle = useCallback((id: string) => {
-    setHidden((prev) => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }, [])
-
-  const toggleAll = useCallback((ids: string[], hide: boolean) => {
-    setHidden((prev) => {
-      const next = new Set(prev)
-      ids.forEach((id) => (hide ? next.add(id) : next.delete(id)))
-      return next
-    })
-  }, [])
 
   const roleNames = useMemo(() => {
     if (!users) return []
@@ -194,7 +179,7 @@ export default function UsersPage() {
             hidden={hidden}
             onToggle={toggle}
             onToggleAll={toggleAll}
-            onClear={() => setHidden(new Set())}
+            onClear={clear}
           />
           <Button size="sm" onClick={() => setCreateOpen(true)}>
             <Plus className="h-4 w-4 mr-1" />

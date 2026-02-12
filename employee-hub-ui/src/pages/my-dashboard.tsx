@@ -15,22 +15,12 @@ import type {
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { StatCard } from "@/components/stat-card"
-import { ListPanel } from "@/components/list-panel"
-import { StatusDot } from "@/components/status-dot"
 import { UpcomingShifts } from "@/components/upcoming-shifts"
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart"
-import {
-  chartGradientDefs,
-  pieStyles,
-  barStyles,
-  buildPieConfig,
-  hoursChartConfig,
-} from "@/lib/chart-styles"
-import { Label, Pie, PieChart, Bar, BarChart, XAxis, YAxis } from "recharts"
+import { NotificationsPanel } from "@/components/dashboard/notifications-panel"
+import { pieStyles, hoursChartConfig } from "@/lib/chart-styles"
+import { DonutChart } from "@/components/charts/donut-chart"
+import type { DonutSlice } from "@/components/charts/donut-chart"
+import { ComparisonBarChart } from "@/components/charts/comparison-bar-chart"
 import { BookOpen, CalendarDays, Bell, ClipboardCheck } from "lucide-react"
 
 interface AppraisalMatrixResponse {
@@ -232,7 +222,6 @@ export default function MyDashboardPage() {
     },
   ].filter((d) => d.count > 0)
 
-  const trainingPieConfig = buildPieConfig(trainingPieData)
 
   // --- Derived data: supervision ---
 
@@ -360,116 +349,44 @@ export default function MyDashboardPage() {
         {/* Training Breakdown Pie */}
         <div className="rounded-xl border shadow-sm overflow-hidden">
           <div className="px-5 pt-4 pb-2">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="text-sm font-semibold">Training Breakdown</h3>
-              <select
-                value={pieCategory}
-                onChange={(e) => setPieCategory(e.target.value)}
-                className="text-xs border rounded-md px-2 py-1 bg-background text-foreground"
-              >
-                <option value="All">All Categories</option>
-                <option value="Online Mandatory">Online Mandatory</option>
-                <option value="F2F Mandatory">F2F Mandatory</option>
-                <option value="Additional">Additional</option>
-              </select>
-            </div>
+            <h3 className="text-sm font-semibold">Training Breakdown</h3>
             <p className="text-xs text-muted-foreground mt-1">
               {pieTraining.length} record{pieTraining.length !== 1 ? "s" : ""}
             </p>
           </div>
-          <div className="px-5 pb-5">
-            {loadingTraining ? (
+          {loadingTraining ? (
+            <div className="px-5 pb-5">
               <Skeleton className="h-[200px] w-full" />
-            ) : pieTraining.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">
-                No training data
-              </p>
-            ) : (
-              <ChartContainer
-                config={trainingPieConfig}
-                className="mx-auto aspect-square max-h-[220px]"
-              >
-                <PieChart key={pieCategory}>
-                  {chartGradientDefs()}
-                  <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                  <Pie
-                    data={trainingPieData}
-                    dataKey="count"
-                    nameKey="status"
-                    innerRadius={60}
-                    outerRadius={90}
-                    strokeWidth={3}
-                    stroke="hsl(var(--background))"
-                    style={{ filter: "url(#pieShadow)", cursor: "pointer" }}
-                    onClick={(data) => {
-                      const actual = pieStatusMap[data.status] ?? data.status
-                      const params = new URLSearchParams({ status: actual })
-                      if (pieCategory !== "All") params.set("category", pieCategory)
-                      navigate(`/my-training?${params}`)
-                    }}
-                  >
-                    <Label
-                      content={({ viewBox }) => {
-                        if (
-                          viewBox &&
-                          "cx" in viewBox &&
-                          "cy" in viewBox
-                        ) {
-                          return (
-                            <text
-                              x={viewBox.cx}
-                              y={viewBox.cy}
-                              textAnchor="middle"
-                              dominantBaseline="middle"
-                            >
-                              <tspan
-                                x={viewBox.cx}
-                                y={(viewBox.cy || 0) - 6}
-                                className="fill-foreground text-3xl font-bold"
-                              >
-                                {piePct}%
-                              </tspan>
-                              <tspan
-                                x={viewBox.cx}
-                                y={(viewBox.cy || 0) + 16}
-                                className="fill-muted-foreground text-[11px] font-medium"
-                              >
-                                compliant
-                              </tspan>
-                            </text>
-                          )
-                        }
-                      }}
-                    />
-                  </Pie>
-                </PieChart>
-              </ChartContainer>
-            )}
-            {pieTraining.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-3 mt-2">
-                {trainingPieData.map((d) => (
-                  <div
-                    key={d.status}
-                    className="flex items-center gap-1.5 cursor-pointer hover:opacity-70 transition-opacity"
-                    onClick={() => {
-                      const actual = pieStatusMap[d.status] ?? d.status
-                      const params = new URLSearchParams({ status: actual })
-                      if (pieCategory !== "All") params.set("category", pieCategory)
-                      navigate(`/my-training?${params}`)
-                    }}
-                  >
-                    <div
-                      className="h-2.5 w-2.5 rounded-full shadow-sm"
-                      style={{ backgroundColor: d.legendColor }}
-                    />
-                    <span className="text-xs text-muted-foreground">
-                      {d.status} ({d.count})
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <DonutChart
+              data={trainingPieData}
+              centerValue={`${piePct}%`}
+              centerLabel="compliant"
+              chartKey={pieCategory}
+              emptyMessage="No training data"
+              filterOptions={[
+                { value: "All", label: "All Categories" },
+                { value: "Online Mandatory", label: "Online Mandatory" },
+                { value: "F2F Mandatory", label: "F2F Mandatory" },
+                { value: "Additional", label: "Additional" },
+              ]}
+              filterValue={pieCategory}
+              onFilterChange={setPieCategory}
+              onSliceClick={(slice: DonutSlice) => {
+                const actual = pieStatusMap[slice.status] ?? slice.status
+                const params = new URLSearchParams({ status: actual })
+                if (pieCategory !== "All") params.set("category", pieCategory)
+                navigate(`/my-training?${params}`)
+              }}
+              onLegendClick={(slice: DonutSlice) => {
+                const actual = pieStatusMap[slice.status] ?? slice.status
+                const params = new URLSearchParams({ status: actual })
+                if (pieCategory !== "All") params.set("category", pieCategory)
+                navigate(`/my-training?${params}`)
+              }}
+            />
+          )}
         </div>
 
         {/* Scheduled vs Contracted Hours */}
@@ -507,74 +424,23 @@ export default function MyDashboardPage() {
                 : "No rota data"}
             </p>
           </div>
-          <div className="px-5 pb-5">
-            {hoursBarData.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">
-                No shift data this month
-              </p>
-            ) : (
-              <div
-                className="cursor-pointer"
-                onClick={() => navigate(`/my-rota?year=${chartYear}&month=${chartMonth}`)}
-              >
-                <ChartContainer
-                  config={hoursChartConfig}
-                  className="h-[220px] w-full"
-                >
-                  <BarChart
-                    key={`${chartYear}-${chartMonth}`}
-                    data={hoursBarData}
-                    margin={{ top: 8, right: 0, left: -20, bottom: 0 }}
-                    barSize={50}
-                  >
-                    {chartGradientDefs()}
-                    <XAxis
-                      dataKey="month"
-                      tickLine={false}
-                      axisLine={false}
-                      fontSize={12}
-                    />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      fontSize={12}
-                    />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar
-                      dataKey="hours"
-                      fill={barStyles.primary}
-                      radius={[6, 6, 0, 0]}
-                    />
-                    <Bar
-                      dataKey="target"
-                      fill={barStyles.secondary}
-                      radius={[6, 6, 0, 0]}
-                    />
-                  </BarChart>
-                </ChartContainer>
-                <div className="flex flex-wrap justify-center gap-3 mt-2">
-                  <div className="flex items-center gap-1.5">
-                    <div
-                      className="h-2.5 w-2.5 rounded-full shadow-sm"
-                      style={{ backgroundColor: "hsl(180, 60%, 40%)" }}
-                    />
-                    <span className="text-xs text-muted-foreground">
-                      Scheduled ({hoursBarData[0]?.hours ?? 0}h)
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div
-                      className="h-2.5 w-2.5 rounded-full shadow-sm"
-                      style={{ backgroundColor: "hsl(220, 15%, 70%)" }}
-                    />
-                    <span className="text-xs text-muted-foreground">
-                      Contracted ({hoursBarData[0]?.target ?? 0}h)
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          <ComparisonBarChart
+            data={hoursBarData}
+            config={hoursChartConfig}
+            categoryKey="month"
+            primaryKey="hours"
+            secondaryKey="target"
+            chartKey={`${chartYear}-${chartMonth}`}
+            barSize={50}
+            emptyMessage="No shift data this month"
+            onClick={() => navigate(`/my-rota?year=${chartYear}&month=${chartMonth}`)}
+            legend={{
+              primary: "Scheduled",
+              secondary: "Contracted",
+              primaryValue: `${hoursBarData[0]?.hours ?? 0}h`,
+              secondaryValue: `${hoursBarData[0]?.target ?? 0}h`,
+            }}
+          />
         </div>
       </div>
 
@@ -597,115 +463,3 @@ export default function MyDashboardPage() {
   )
 }
 
-// --- Notifications sub-component ---
-
-function NotificationsPanel({
-  expiredTraining,
-  expiringTraining,
-  mySupervision,
-  nextAppraisal,
-  totalAlerts,
-}: {
-  expiredTraining: TrainingStatus[]
-  expiringTraining: TrainingStatus[]
-  mySupervision?: SupervisionStatus
-  nextAppraisal?: { status: string; dueDate: string; daysUntilDue: number | null }
-  totalAlerts: number
-}) {
-  const hasAlerts = totalAlerts > 0
-
-  return (
-    <ListPanel title="Notifications" count={totalAlerts}>
-      {!hasAlerts ? (
-        <p className="text-sm text-muted-foreground text-center py-6">
-          All clear — no action needed
-        </p>
-      ) : (
-        <>
-          {expiredTraining.map((s) => (
-            <div
-              key={`exp-${s.courseId}`}
-              className="flex items-center gap-3 px-4 py-2.5 min-h-[52px] hover:bg-muted/30 transition-colors"
-            >
-              <StatusDot color="red" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm">{s.courseName}</p>
-                <p className="text-xs text-muted-foreground">
-                  Expired{" "}
-                  {s.daysUntilExpiry !== null
-                    ? `${Math.abs(s.daysUntilExpiry)}d ago`
-                    : ""}
-                </p>
-              </div>
-              <Badge variant="outline" className="text-xs shrink-0">
-                Training
-              </Badge>
-            </div>
-          ))}
-          {expiringTraining.map((s) => (
-            <div
-              key={`soon-${s.courseId}`}
-              className="flex items-center gap-3 px-4 py-2.5 min-h-[52px] hover:bg-muted/30 transition-colors"
-            >
-              <StatusDot color="amber" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm">{s.courseName}</p>
-                <p className="text-xs text-muted-foreground">
-                  Expires in {s.daysUntilExpiry}d
-                </p>
-              </div>
-              <Badge variant="outline" className="text-xs shrink-0">
-                Training
-              </Badge>
-            </div>
-          ))}
-          {mySupervision &&
-            (mySupervision.status === "Overdue" ||
-              mySupervision.status === "Due Soon") && (
-              <div className="flex items-center gap-3 px-4 py-2.5 min-h-[52px] hover:bg-muted/30 transition-colors">
-                <StatusDot
-                  color={
-                    mySupervision.status === "Overdue" ? "red" : "amber"
-                  }
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm">Supervision {mySupervision.status.toLowerCase()}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {mySupervision.lastSupervisionDate
-                      ? `Last: ${formatDate(mySupervision.lastSupervisionDate)}`
-                      : "No supervision recorded"}
-                  </p>
-                </div>
-                <Badge variant="outline" className="text-xs shrink-0">
-                  Supervision
-                </Badge>
-              </div>
-            )}
-          {nextAppraisal &&
-            (nextAppraisal.status === "overdue" ||
-              nextAppraisal.status === "due_soon") && (
-              <div className="flex items-center gap-3 px-4 py-2.5 min-h-[52px] hover:bg-muted/30 transition-colors">
-                <StatusDot
-                  color={nextAppraisal.status === "overdue" ? "red" : "amber"}
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm">
-                    Appraisal{" "}
-                    {nextAppraisal.status === "overdue"
-                      ? "overdue"
-                      : "due soon"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Due {formatDate(nextAppraisal.dueDate)}
-                  </p>
-                </div>
-                <Badge variant="outline" className="text-xs shrink-0">
-                  Appraisal
-                </Badge>
-              </div>
-            )}
-        </>
-      )}
-    </ListPanel>
-  )
-}

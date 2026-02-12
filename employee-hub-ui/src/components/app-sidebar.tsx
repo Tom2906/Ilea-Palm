@@ -15,6 +15,7 @@ import {
   UserCog,
   LayoutDashboard,
   MessageSquare,
+  Bug,
   type LucideIcon,
 } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
@@ -65,6 +66,7 @@ const managementNav: NavItem[] = [
 
 const toolsNav: NavItem[] = [
   { title: "Day in the Life", url: "/day-in-life", icon: MessageSquare, permission: "day_in_life.use" },
+  { title: "Report Issue", url: "/report-issue", icon: Bug },
 ]
 
 const adminNav: NavItem[] = [

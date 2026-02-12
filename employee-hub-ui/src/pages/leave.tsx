@@ -1,9 +1,10 @@
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import { formatDate } from "@/lib/format"
 import type { LeaveRequest } from "@/lib/types"
+import { useFilterToggle } from "@/hooks/use-filter-toggle"
 import { LeaveStatusBadge } from "@/components/leave/leave-status-badge"
 import { LeaveRequestModal } from "@/components/leave/leave-request-modal"
 import { ListPage } from "@/components/list-page"
@@ -22,7 +23,7 @@ export default function LeavePage() {
   const { hasPermission, user } = useAuth()
   const queryClient = useQueryClient()
   const [search, setSearch] = useState("")
-  const [hidden, setHidden] = useState<Set<string>>(new Set())
+  const { hidden, toggle, toggleAll, clear } = useFilterToggle()
   const [requestOpen, setRequestOpen] = useState(false)
 
   const { data: requests, isLoading } = useQuery({
@@ -38,22 +39,6 @@ export default function LeavePage() {
       queryClient.invalidateQueries({ queryKey: ["leave-balance"] })
     },
   })
-
-  const toggle = useCallback((id: string) => {
-    setHidden((prev) => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }, [])
-
-  const toggleAll = useCallback((ids: string[], hide: boolean) => {
-    setHidden((prev) => {
-      const next = new Set(prev)
-      ids.forEach((id) => (hide ? next.add(id) : next.delete(id)))
-      return next
-    })
-  }, [])
 
   const filterGroups = useMemo(() => [
     { label: "Status", items: allStatuses.map((s) => ({ id: `status:${s}`, label: formatStatus(s) })) },
@@ -86,7 +71,7 @@ export default function LeavePage() {
             hidden={hidden}
             onToggle={toggle}
             onToggleAll={toggleAll}
-            onClear={() => setHidden(new Set())}
+            onClear={clear}
           />
           <Button variant="outline" size="sm" onClick={() => setRequestOpen(true)}>
             <Plus className="h-3.5 w-3.5 mr-1" />

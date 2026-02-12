@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
+import { useFilterToggle } from "@/hooks/use-filter-toggle"
 import { useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
@@ -27,7 +28,7 @@ export default function MyTrainingPage() {
   const [searchParams] = useSearchParams()
   const appliedFilter = useRef(false)
   const [search, setSearch] = useState("")
-  const [hidden, setHidden] = useState<Set<string>>(new Set())
+  const { hidden, setHidden, toggle, toggleAll, clear } = useFilterToggle()
   const [recordOpen, setRecordOpen] = useState(false)
   const [groupBy, setGroupBy] = useState<string | null>("category")
 
@@ -36,22 +37,6 @@ export default function MyTrainingPage() {
     queryFn: () => api.get<TrainingStatus[]>("/training-records/status"),
     enabled: !!employeeId,
   })
-
-  const toggle = useCallback((id: string) => {
-    setHidden((prev) => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }, [])
-
-  const toggleAll = useCallback((ids: string[], hide: boolean) => {
-    setHidden((prev) => {
-      const next = new Set(prev)
-      ids.forEach((id) => (hide ? next.add(id) : next.delete(id)))
-      return next
-    })
-  }, [])
 
   const myTraining = useMemo(() =>
     trainingStatuses?.filter((s) => s.employeeId === employeeId) ?? [],
@@ -157,7 +142,7 @@ export default function MyTrainingPage() {
               hidden={hidden}
               onToggle={toggle}
               onToggleAll={toggleAll}
-              onClear={() => setHidden(new Set())}
+              onClear={clear}
             />
             <Button variant="outline" size="sm" onClick={() => setRecordOpen(true)}>
               <GraduationCap className="h-3.5 w-3.5 mr-1" />

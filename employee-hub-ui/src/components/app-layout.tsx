@@ -33,6 +33,7 @@ const pageTitles: Record<string, string> = {
   "/roles": "Roles",
   "/users": "Users",
   "/day-in-life": "Day in the Life",
+  "/report-issue": "Report Issue",
   "/change-password": "Change Password",
 }
 
